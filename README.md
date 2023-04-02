@@ -1,7 +1,7 @@
 # cn-bpmn-modeler-vue
 
 #### 介绍
-根据 BPMN XML 渲染编辑 BPMN 图 
+bpmn-js Vue3 插件
 
 #### 软件架构
 软件架构说明

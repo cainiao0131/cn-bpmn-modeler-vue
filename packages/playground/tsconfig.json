@@ -1,0 +1,45 @@
+{
+  "compilerOptions": {
+    // 输出的 ECMAScript 版本，默认为 ES5
+    "target": "ESNext",
+    "useDefineForClassFields": true,
+    // 输出模块规范，默认为 CommonJS
+    "module": "ESNext",
+    // 模块解析策略，默认为 Classic
+    "moduleResolution": "Node",
+    // 启用所有严格的类型检查选项，默认为 true
+    "strict": true,
+    "jsx": "preserve",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    // 通过为导入内容创建命名空间，实现 CommonJS 和 ES 模块之间的互操作性，默认为 true
+    "esModuleInterop": true,
+    // 编译需要包含的 API，默认为 target 的默认值
+    "lib": [
+      "ESNext",
+      "DOM"
+    ],
+    // 跳过导入第三方 lib 声明文件的类型检查，默认为 true
+    "skipLibCheck": true,
+    "noEmit": true,
+    // Vite 配置的别名只在打包时起作用，还需要为 TypeScript 配置同样的别名
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
+    },
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.d.ts",
+    "src/**/*.tsx",
+    "src/**/*.vue",
+    "src/mock/**/*.ts",
+    "./auto-imports.d.ts"
+  ],
+  "references": [
+    {
+      "path": "./tsconfig.node.json"
+    }
+  ]
+}
