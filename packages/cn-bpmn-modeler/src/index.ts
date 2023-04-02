@@ -1,6 +1,6 @@
 import ProcessEditor from './process-editor.vue';
 
-export { createBpmnJs } from './bpmn-js';
+export { createCnBpmnModeler } from './cn-bpmn-modeler';
 
 export { ProcessEditor };
 

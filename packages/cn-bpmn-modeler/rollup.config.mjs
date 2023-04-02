@@ -84,7 +84,7 @@ function createConfig(buildName, output, plugins = []) {
   const isNodeBuild = output.file.includes('.node.') || buildName === 'cjs';
   const isBundlerESMBuild = buildName === 'mjs';
 
-  if (isGlobalBuild) output.name = 'BpmnJsVue';
+  if (isGlobalBuild) output.name = 'CnBpmnModelerVue';
 
   const shouldEmitDeclarations = !hasTSChecked;
 

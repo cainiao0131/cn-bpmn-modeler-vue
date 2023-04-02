@@ -1,10 +1,10 @@
 import type { App } from 'vue';
-import router from './router';
-import bpmnJs from './bpmn-js';
-import pinia from './pinia';
+import routerPlugin from './router';
+import cnBpmnModelerPlugin from './cn-bpmn-modeler';
+import piniaPlugin from './pinia';
 
 export default {
   install: (app: App) => {
-    app.use(router).use(bpmnJs).use(pinia);
+    app.use(routerPlugin).use(cnBpmnModelerPlugin).use(piniaPlugin);
   },
 };

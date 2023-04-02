@@ -83,11 +83,7 @@ const isShowDrag = computed(() => {
  * 将 bpmnXml 更新为 Modeler 的最新值
  * 具体的：从 Modeler 中获取最新的 XML 并弹出
  */
-const emitModelerXml = (a?: unknown, b?: unknown) => {
-  console.log('');
-  console.log('a =', JSON.stringify(a));
-  console.log('b =', JSON.stringify(b));
-
+const emitModelerXml = () => {
   bpmnModeler.value
     .saveXML({ format: true })
     .then(({ xml }: { xml: string }) => {
