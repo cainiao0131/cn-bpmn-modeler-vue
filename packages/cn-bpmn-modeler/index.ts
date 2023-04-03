@@ -1,3 +1,5 @@
-export { createCnBpmnModeler } from './src/index';
+import CnBpmnModeler from './src/index';
 
-export type { ProcessModelOptions, ProcessModelerApi, Root, InternalEvent } from './src/index';
+export type { ProcessModelerApi, Root, InternalEvent } from './src/index';
+
+export { CnBpmnModeler };
