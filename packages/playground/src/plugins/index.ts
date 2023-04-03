@@ -1,6 +1,6 @@
 import type { App } from 'vue';
 import routerPlugin from './router';
-import { CnBpmnModeler } from 'cn-bpmn-modeler-vue';
+import CnBpmnModeler from 'cn-bpmn-modeler-vue';
 import piniaPlugin from './pinia';
 
 export default {
