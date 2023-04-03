@@ -26,6 +26,7 @@ declare module '@vue/runtime-core' {
     DirectoryList: typeof import('./components/directory-list/directory-list.vue')['default']
     FileDirectory: typeof import('./components/file-directory/file-directory.vue')['default']
     list: typeof import('./components/directory list/directory list.vue')['default']
+    ProcessEditor: typeof import('./components/process-editor.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
   }

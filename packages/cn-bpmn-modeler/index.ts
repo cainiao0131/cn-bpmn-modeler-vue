@@ -1,1 +1,1 @@
-export { createCnBpmnModeler, ProcessEditor } from './src/index';
+export { createCnBpmnModeler } from './src/index';

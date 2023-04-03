@@ -17,7 +17,9 @@
     "vue": "^3.2.47",
     "vue-router": "^4.1.6",
     "pinia": "^2.0.22",
-    "pinia-plugin-persistedstate": "^2.3.0"
+    "pinia-plugin-persistedstate": "^2.3.0",
+    "bpmn-js": "^11.3.1",
+    "diagram-js": "^11.9.0"
   },
   "devDependencies": {
     "cn-bpmn-modeler-vue": "workspace:*",

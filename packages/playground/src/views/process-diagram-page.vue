@@ -57,7 +57,7 @@ import { useProcessStore } from '@/store/process-store';
 import { guid } from '@/utils';
 import { Form } from 'ant-design-vue/es';
 import { DataNode } from 'ant-design-vue/es/tree';
-import { ProcessEditor } from 'cn-bpmn-modeler-vue';
+import ProcessEditor from '@/components/process-editor.vue';
 import { addNode } from '@/utils';
 
 const processStore = useProcessStore();
