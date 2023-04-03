@@ -1,3 +1,3 @@
-export { createCnBpmnModeler } from './cn-bpmn-modeler';
+export { createCnBpmnModeler, type ProcessModelOptions } from './cn-bpmn-modeler';
 
-export type { ProcessModelerApi } from './types';
+export type { ProcessModelerApi, Root, InternalEvent } from './types';
