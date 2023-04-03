@@ -1,6 +1,7 @@
 import BpmnModeler from 'bpmn-js/lib/Modeler';
 import { debounce } from '../utils';
 import { InternalEvent, ProcessModelerApi } from '../types';
+import { onMounted } from 'vue';
 
 export function useInit(
   getProcessModelerApi: () => ProcessModelerApi,

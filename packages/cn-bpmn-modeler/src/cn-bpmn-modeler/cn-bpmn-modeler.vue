@@ -21,6 +21,7 @@
 </template>
 
 <script lang="ts" setup>
+import { ref, computed, watch, toRefs, PropType } from 'vue';
 import BpmnModeler from 'bpmn-js/lib/Modeler';
 import { getInitialXml } from '../utils';
 import { useImportToModeler } from './import-to-modeler';
