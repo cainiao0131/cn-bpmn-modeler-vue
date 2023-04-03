@@ -1,33 +1,7 @@
 {
   "name": "cn-bpmn-modeler-vue",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "main": "index.ts",
-  "unpkg": "dist/cn-bpmn-modeler-vue.global.js",
-  "jsdelivr": "dist/cn-bpmn-modeler-vue.global.js",
-  "module": "dist/cn-bpmn-modeler-vue.mjs",
-  "types": "dist/cn-bpmn-modeler-vue.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/cn-bpmn-modeler-vue.d.ts",
-      "node": {
-        "import": {
-          "production": "./dist/cn-bpmn-modeler-vue.node.mjs",
-          "development": "./dist/cn-bpmn-modeler-vue.node.mjs",
-          "default": "./dist/cn-bpmn-modeler-vue.node.mjs"
-        },
-        "require": {
-          "production": "./dist/cn-bpmn-modeler-vue.prod.cjs",
-          "development": "./dist/cn-bpmn-modeler-vue.cjs",
-          "default": "./index.js"
-        }
-      },
-      "import": "./dist/cn-bpmn-modeler-vue.mjs",
-      "require": "./index.js"
-    },
-    "./dist/*": "./dist/*",
-    "./vetur/*": "./vetur/*",
-    "./package.json": "./package.json"
-  },
   "sideEffects": false,
   "license": "GPL-2.0",
   "repository": {

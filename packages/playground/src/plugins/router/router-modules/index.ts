@@ -1,6 +1,5 @@
 import type { RouteRecordRaw } from 'vue-router';
 
-// 登录页路由
 export const routerModules: Array<RouteRecordRaw> = [
   {
     path: '/',
