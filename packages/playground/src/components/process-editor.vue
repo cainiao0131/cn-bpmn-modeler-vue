@@ -7,7 +7,6 @@
 <script lang="ts" setup>
 import BpmnModeler from 'bpmn-js/lib/Modeler';
 import { InternalEvent, ProcessModelerApi } from '../../../cn-bpmn-modeler/src/types';
-import CnBpmnModeler from '../../../cn-bpmn-modeler/src/cn-bpmn-modeler/cn-bpmn-modeler.vue';
 
 const emit = defineEmits<{
   (eventName: 'api-ready', message: ProcessModelerApi): void;

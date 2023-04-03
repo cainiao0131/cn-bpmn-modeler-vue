@@ -1,6 +1,6 @@
 {
   "name": "cn-bpmn-modeler-vue",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "main": "index.ts",
   "unpkg": "dist/cn-bpmn-modeler-vue.global.js",
   "jsdelivr": "dist/cn-bpmn-modeler-vue.global.js",
