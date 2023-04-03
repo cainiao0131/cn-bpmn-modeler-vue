@@ -1,7 +1,7 @@
 import BpmnModeler from 'bpmn-js/lib/Modeler';
 import { debounce } from '../utils';
 import { InternalEvent, ProcessModelerApi } from '../types';
-import { onMounted } from 'vue';
+import { onMounted, toRaw } from 'vue';
 
 export function useInit(
   getProcessModelerApi: () => ProcessModelerApi,
@@ -13,6 +13,8 @@ export function useInit(
   translator: Ref<(english: string, replacements: Record<string, string>) => string>,
   bpmnModeler: Ref<typeof BpmnModeler>,
   errorMessage: Ref<string>,
+  options: Ref<Record<string, unknown>>,
+  additionalModules: Ref<Array<unknown>>,
   emit: {
     (eventName: 'api-ready', message: ProcessModelerApi): void;
     (eventName: 'modeler-ready', message: typeof BpmnModeler): void;
@@ -21,19 +23,30 @@ export function useInit(
   },
 ) {
   onMounted(() => {
-    const rawModeler = new BpmnModeler({
-      container: '#bpmn-modeler-canvas',
-      additionalModules: [
-        {
-          translate: [
-            'value',
-            (english: string, replacements: Record<string, string>) => {
-              return translator.value(english, replacements) || english;
-            },
-          ],
-        },
-      ],
+    /**
+     {
+        translate: [
+          'value',
+          (english: string, replacements: Record<string, string>) => {
+            return translator.value(english, replacements) || english;
+          },
+        ],
+      },
+     */
+    const newAdditionalModules: Array<unknown> = [];
+    const rawAdditionalModules = toRaw(additionalModules.value);
+    rawAdditionalModules.forEach(additionalModule => {
+      newAdditionalModules.push(additionalModule);
     });
+    const rawModeler = new BpmnModeler(
+      Object.assign(
+        {
+          container: '#bpmn-modeler-canvas',
+          additionalModules: newAdditionalModules,
+        },
+        toRaw(options.value),
+      ),
+    );
     emit('modeler-ready', rawModeler);
     bpmnModeler.value = rawModeler;
 

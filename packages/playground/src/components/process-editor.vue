@@ -1,12 +1,21 @@
 <template>
   <div class="bpmn-editor-wrapper" :style="{ height }">
-    <cn-bpmn-modeler :bpmn-xml="bpmnXml" :height="height" :translator="translator" @update:bpmn-xml="onUpdateBpmnXml" />
+    <cn-bpmn-modeler
+      :bpmn-xml="bpmnXml"
+      :height="height"
+      :options="options"
+      :additional-modules="additionalModules"
+      :translator="translator"
+      @update:bpmn-xml="onUpdateBpmnXml"
+    />
+    <div id="js-properties-panel" class="properties-panel-parent"></div>
   </div>
 </template>
 
 <script lang="ts" setup>
 import BpmnModeler from 'bpmn-js/lib/Modeler';
 import { InternalEvent, ProcessModelerApi } from 'cn-bpmn-modeler-vue';
+import { BpmnPropertiesPanelModule, BpmnPropertiesProviderModule } from 'bpmn-js-properties-panel';
 
 const emit = defineEmits<{
   (eventName: 'api-ready', message: ProcessModelerApi): void;
@@ -41,4 +50,34 @@ const { translator, bpmnXml } = toRefs(props);
 const onUpdateBpmnXml = (xml: string) => {
   emit('update:bpmn-xml', xml);
 };
+
+const options = ref({
+  propertiesPanel: {
+    parent: '#js-properties-panel',
+  },
+});
+const additionalModules = ref([BpmnPropertiesPanelModule, BpmnPropertiesProviderModule]);
 </script>
+
+<style lang="less">
+@import 'bpmn-js-properties-panel/dist/assets/properties-panel.css';
+</style>
+<style lang="less" scoped>
+.bpmn-editor-wrapper {
+  .properties-panel-parent {
+    border-left: 1px solid #ccc;
+    overflow: auto;
+    top: 0;
+    position: absolute;
+    right: 0;
+    width: 200px;
+    &:empty {
+      display: none;
+    }
+    > .djs-properties-panel {
+      padding-bottom: 70px;
+      min-height: 100%;
+    }
+  }
+}
+</style>

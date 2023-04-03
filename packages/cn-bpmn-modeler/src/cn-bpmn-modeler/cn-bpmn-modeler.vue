@@ -55,8 +55,22 @@ const props = defineProps({
      */
     required: true,
   },
+  options: {
+    type: Object as PropType<Record<string, unknown>>,
+    default: () => {
+      return {};
+    },
+  },
+  additionalModules: {
+    type: Array,
+    default: () => {
+      return () => {
+        return [];
+      };
+    },
+  },
 });
-const { translator, bpmnXml } = toRefs(props);
+const { translator, bpmnXml, additionalModules, options } = toRefs(props);
 
 // bpmn.js 实例
 const bpmnModeler = ref<typeof BpmnModeler>();
@@ -162,14 +176,16 @@ useInit(
   translator,
   bpmnModeler,
   errorMessage,
+  options,
+  additionalModules,
   emit,
 );
 </script>
-
 <style lang="less">
 @import 'bpmn-js/dist/assets/bpmn-js.css';
 @import 'bpmn-js/dist/assets/diagram-js.css';
 @import 'bpmn-js/dist/assets/bpmn-font/css/bpmn.css';
+@import 'bpmn-js-properties-panel/dist/assets/properties-panel.css';
 </style>
 <style lang="less" scoped>
 .bpmn-modeler-wrapper {
@@ -183,6 +199,21 @@ useInit(
     overflow: hidden;
   }
   .content {
+    .properties-panel-parent {
+      border-left: 1px solid #ccc;
+      overflow: auto;
+      top: 0;
+      position: absolute;
+      right: 0;
+      width: 200px;
+      &:empty {
+        display: none;
+      }
+      > .djs-properties-panel {
+        padding-bottom: 70px;
+        min-height: 100%;
+      }
+    }
     > .message {
       text-align: center;
       display: table;
