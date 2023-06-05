@@ -13,6 +13,12 @@ export const routerModules: Array<RouteRecordRaw> = [
         meta: { title: '流程图' },
         component: () => import('@/views/process-diagram-page.vue'),
       },
+      {
+        path: 'bpmn-js-test',
+        name: 'bpmn-js-test',
+        meta: { title: 'bpmn.js' },
+        component: () => import('@/views/bpmn-js-test.vue'),
+      },
     ],
   },
 ];

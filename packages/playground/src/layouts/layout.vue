@@ -2,10 +2,12 @@
   <a-layout class="layout-page-wrapper">
     <a-layout-sider v-model:collapsed="collapsed" collapsible>
       <div class="logo" />
-      <a-menu v-model:selectedKeys="selectedKeys" theme="dark" mode="inline">
-        <a-menu-item key="1">
-          <branches-outlined />
+      <a-menu :selected-keys="selectedKeys" theme="dark" mode="inline" @click="handleClick">
+        <a-menu-item key="process-diagram">
           <span>流程图</span>
+        </a-menu-item>
+        <a-menu-item key="bpmn-js-test">
+          <span>bpmn.js</span>
         </a-menu-item>
       </a-menu>
     </a-layout-sider>
@@ -16,10 +18,19 @@
 </template>
 
 <script setup lang="ts">
-import { BranchesOutlined } from '@ant-design/icons-vue';
+import { useRoute, useRouter } from 'vue-router';
 
-const selectedKeys = ref(['1']);
-const collapsed = ref(true);
+const route = useRoute();
+const router = useRouter();
+
+const selectedKeys = computed(() => {
+  return [String(route.name || '')];
+});
+const collapsed = ref(false);
+
+const handleClick = (data: { key: string }) => {
+  router.push({ name: data.key });
+};
 </script>
 
 <style lang="less" scoped>
