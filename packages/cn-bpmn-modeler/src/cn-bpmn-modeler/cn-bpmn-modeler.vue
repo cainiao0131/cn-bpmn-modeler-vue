@@ -15,28 +15,32 @@
           </div>
         </div>
       </div>
-      <div v-show="hasDiagram" id="bpmn-modeler-canvas" class="canvas" />
+      <div v-show="hasDiagram" id="_bpmn-modeler-canvas" class="canvas" />
     </div>
   </div>
 </template>
 
 <script lang="ts" setup>
 import { ref, computed, watch, toRefs, PropType } from 'vue';
-import BpmnModeler from 'bpmn-js/lib/Modeler';
+import BpmnJS from 'bpmn-js/lib/Modeler';
 import { getInitialXml } from '../utils';
 import { useImportToModeler } from './import-to-modeler';
 import { useInit } from './init';
 import { InternalEvent, ProcessModelerApi } from '../types';
 
 const emit = defineEmits<{
-  (eventName: 'api-ready', message: ProcessModelerApi): void;
-  (eventName: 'modeler-ready', message: typeof BpmnModeler): void;
   (eventName: 'update:bpmn-xml', message: string): void;
+  (eventName: 'api-ready', message: ProcessModelerApi): void;
+  (eventName: 'modeler-ready', message: typeof BpmnJS): void;
   (eventName: 'root-added', message: InternalEvent): void;
   (eventName: 'selection-changed', message: InternalEvent): void;
 }>();
 
 const props = defineProps({
+  bpmnXml: {
+    type: String,
+    default: '',
+  },
   height: {
     type: [String, Number],
     default: '100%',
@@ -46,14 +50,6 @@ const props = defineProps({
     default: () => {
       return () => undefined;
     },
-  },
-  bpmnXml: {
-    type: String,
-    /**
-     * 因为需要通过 bpmnXml 来判断是已经有导入的流程图了
-     * 所以必须通过 v-model 来更新 bpmnXml，因此要求客户端程序员一定要设置 v-model:bpmnXml
-     */
-    required: true,
   },
   options: {
     type: Object as PropType<Record<string, unknown>>,
@@ -73,7 +69,7 @@ const props = defineProps({
 const { translator, bpmnXml, additionalModules, options } = toRefs(props);
 
 // bpmn.js 实例
-const bpmnModeler = ref<typeof BpmnModeler>();
+const bpmnModeler = ref<typeof BpmnJS>();
 // 拖动文件的组件，ref 不能放到组合式函数中，否则无法绑定组件引用
 const dragFileRef = ref<HTMLElement>();
 // 错误消息
@@ -131,15 +127,16 @@ const getProcessModelerApi = (): ProcessModelerApi => {
       importAndEmitIfDifferent(getInitialXml());
     },
     updateProperties: (element: unknown, properties: Record<string, string | Array<unknown> | null>) => {
-      /**
-       * 需要通过 toRaw() 获得原始对象
-       * 因为 bpmn.js 的 API 中某些操作会设置代理类的只读属性导致报错
-       */
+      // 复制一下，避免对其的兼容性修改影响到原对象
       const copyProperties = Object.assign({}, properties);
       const documentation = copyProperties.documentation;
       copyProperties.documentation = documentation
         ? [bpmnModeler.value.get('moddle').create('bpmn:Documentation', { text: documentation })]
         : [];
+      /**
+       * 需要通过 toRaw() 获得原始对象
+       * 因为 bpmn.js 的 API 中某些操作会设置代理类的只读属性导致报错
+       */
       bpmnModeler.value.get('modeling').updateProperties(toRaw(element), copyProperties);
     },
     undo: () => {
@@ -181,6 +178,7 @@ useInit(
   emit,
 );
 </script>
+
 <style lang="less">
 @import 'bpmn-js/dist/assets/bpmn-js.css';
 @import 'bpmn-js/dist/assets/diagram-js.css';

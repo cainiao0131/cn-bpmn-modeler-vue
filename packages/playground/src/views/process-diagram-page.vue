@@ -23,8 +23,15 @@
           :body-style="{ height: '100%' }"
         >
           <template #extra>
-            <a-button v-show="!isEdit" type="link" @click="onEditClick">编辑</a-button>
-            <a-button v-show="isEdit" type="primary" @click="onSaveClick">保存</a-button>
+            <a-row :gutter="10">
+              <a-col>
+                <a-button size="small" @click="previewDiagram">预览</a-button>
+              </a-col>
+              <a-col>
+                <a-button v-show="!isEdit" size="small" type="link" @click="onEditClick">编辑</a-button>
+                <a-button v-show="isEdit" size="small" type="primary" @click="onSaveClick">保存</a-button>
+              </a-col>
+            </a-row>
           </template>
           <process-editor v-show="!!selectedProcess" :bpmn-xml="selectedBpmnXml" @update:bpmn-xml="onUpdateBpmnXml" />
         </a-card>
@@ -48,10 +55,18 @@
         </a-form>
       </a-modal>
     </a-row>
+    <!-- 预览 -->
+    <a-drawer v-model:visible="previewVisible" width="70%" title="预览" placement="left" :closable="false">
+      <template #extra>
+        <a-button type="primary" @click="copyPreview">复制</a-button>
+      </template>
+      <codemirror v-model="selectedBpmnXml" disabled />
+    </a-drawer>
   </div>
 </template>
 
 <script setup lang="ts">
+import { Codemirror } from 'vue-codemirror';
 import DirectoryList from '@/components/directory-list/directory-list.vue';
 import { useProcessStore } from '@/store/process-store';
 import { guid } from '@/utils';
@@ -59,11 +74,25 @@ import { Form } from 'ant-design-vue/es';
 import { DataNode } from 'ant-design-vue/es/tree';
 import ProcessEditor from '@/components/process-editor.vue';
 import { addNode } from '@/utils';
+import { message } from 'ant-design-vue';
+import { copyText } from '@/utils/domUtils';
 
 const processStore = useProcessStore();
 
 const onUpdateTreeData = (nodes: Array<DataNode>) => {
   processStore.setProcessNodes(nodes);
+};
+
+// 预览图表
+const previewVisible = ref(false);
+const previewDiagram = () => {
+  previewVisible.value = true;
+};
+// 复制预览
+const copyPreview = () => {
+  copyText(selectedBpmnXml.value).then(() => {
+    message.success('已复制到剪切板');
+  });
 };
 
 // 选中的流程

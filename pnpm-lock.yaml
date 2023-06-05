@@ -117,6 +117,7 @@ importers:
       camunda-bpmn-js-behaviors: ^0.5.0
       camunda-bpmn-moddle: ^7.0.1
       cn-bpmn-modeler-vue: workspace:*
+      codemirror: ^6.0.1
       commitlint-config-gitmoji: ^2.3.1
       cz-customizable: ^7.0.0
       diagram-js: ^11.9.0
@@ -137,6 +138,7 @@ importers:
       vite: ^4.1.1
       vite-plugin-eslint: ^1.8.1
       vue: ^3.2.47
+      vue-codemirror: ^6.1.1
       vue-router: ^4.1.6
       vue-tsc: ^1.0.24
       webpack: ^5.0.0
@@ -152,11 +154,13 @@ importers:
       bpmn-js-properties-panel: 1.20.3_rcfyjq37kjosmqy4idvaecsiay
       camunda-bpmn-js-behaviors: 0.5.0_i3gkvn3hhzewymmiyggevrperq
       camunda-bpmn-moddle: 7.0.1
+      codemirror: 6.0.1
       diagram-js: 11.12.0
       pinia: 2.0.33_hmuptsblhheur2tugfgucj7gc4
       pinia-plugin-persistedstate: 2.4.0_pinia@2.0.33
       preact: 10.13.2
       vue: 3.2.47
+      vue-codemirror: 6.1.1_bxcxcy6q5ryy5ccenljp75aexa
       vue-router: 4.1.6_vue@3.2.47
       zeebe-bpmn-moddle: 0.18.0
     devDependencies:
@@ -627,6 +631,14 @@ packages:
 
   /@codemirror/lint/6.2.0:
     resolution: {integrity: sha512-KVCECmR2fFeYBr1ZXDVue7x3q5PMI0PzcIbA+zKufnkniMBo1325t0h1jM85AKp8l3tj67LRxVpZfgDxEXlQkg==}
+    dependencies:
+      '@codemirror/state': 6.2.0
+      '@codemirror/view': 6.9.3
+      crelt: 1.0.5
+    dev: false
+
+  /@codemirror/search/6.4.0:
+    resolution: {integrity: sha512-zMDgaBXah+nMLK2dHz9GdCnGbQu+oaGRXS1qviqNZkvOCv/whp5XZFyoikLp/23PM9RBcbuKUUISUmQHM1eRHw==}
     dependencies:
       '@codemirror/state': 6.2.0
       '@codemirror/view': 6.9.3
@@ -2341,6 +2353,18 @@ packages:
   /clsx/1.2.1:
     resolution: {integrity: sha512-EcR6r5a8bj6pu3ycsa/E/cKVGuTgZJZdsyUYHOksG/UHIiKfjxzRxYJpyVBwYaQeOvghal9fcc4PidlgzugAQg==}
     engines: {node: '>=6'}
+    dev: false
+
+  /codemirror/6.0.1:
+    resolution: {integrity: sha512-J8j+nZ+CdWmIeFIGXEFbFPtpiYacFMDR8GlHK3IyHQJMCaVRfGx9NT+Hxivv1ckLWPvNdZqndbr/7lVhrf/Svg==}
+    dependencies:
+      '@codemirror/autocomplete': 6.4.2
+      '@codemirror/commands': 6.2.2
+      '@codemirror/language': 6.6.0
+      '@codemirror/lint': 6.2.0
+      '@codemirror/search': 6.4.0
+      '@codemirror/state': 6.2.0
+      '@codemirror/view': 6.9.3
     dev: false
 
   /color-convert/1.9.3:
@@ -5830,6 +5854,20 @@ packages:
   /vscode-textmate/8.0.0:
     resolution: {integrity: sha512-AFbieoL7a5LMqcnOF04ji+rpXadgOXnZsxQr//r83kLPr7biP7am3g9zbaZIaBGwBRWeSvoMD4mgPdX3e4NWBg==}
     dev: true
+
+  /vue-codemirror/6.1.1_bxcxcy6q5ryy5ccenljp75aexa:
+    resolution: {integrity: sha512-rTAYo44owd282yVxKtJtnOi7ERAcXTeviwoPXjIc6K/IQYUsoDkzPvw/JDFtSP6T7Cz/2g3EHaEyeyaQCKoDMg==}
+    peerDependencies:
+      codemirror: 6.x
+      vue: 3.x
+    dependencies:
+      '@codemirror/commands': 6.2.2
+      '@codemirror/language': 6.6.0
+      '@codemirror/state': 6.2.0
+      '@codemirror/view': 6.9.3
+      codemirror: 6.0.1
+      vue: 3.2.47
+    dev: false
 
   /vue-demi/0.13.11_vue@3.2.47:
     resolution: {integrity: sha512-IR8HoEEGM65YY3ZJYAjMlKygDQn25D5ajNFNoKh9RSDMQtlzCxtfQjdQgv9jjK+m3377SsJXY8ysq8kLCZL25A==}

@@ -2,6 +2,8 @@
 export const debounce = (fn: (param1?: unknown, param2?: unknown) => void, timeout: number) => {
   let timer: NodeJS.Timeout;
   return (param1: unknown, param2: unknown) => {
+    console.log('');
+    console.log('debounce');
     if (timer) {
       clearTimeout(timer);
     }

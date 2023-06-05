@@ -8,7 +8,7 @@
       :translator="translator"
       @update:bpmn-xml="onUpdateBpmnXml"
     />
-    <div id="js-properties-panel" class="properties-panel-parent"></div>
+    <!-- <div id="js-properties-panel" class="properties-panel-parent"></div> -->
   </div>
 </template>
 

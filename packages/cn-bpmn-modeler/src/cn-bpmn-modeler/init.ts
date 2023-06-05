@@ -41,7 +41,7 @@ export function useInit(
     const rawModeler = new BpmnModeler(
       Object.assign(
         {
-          container: '#bpmn-modeler-canvas',
+          container: '#_bpmn-modeler-canvas',
           additionalModules: newAdditionalModules,
         },
         toRaw(options.value),
