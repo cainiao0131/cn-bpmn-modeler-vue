@@ -1,7 +1,9 @@
-import BpmnJS from 'bpmn-js/lib/Modeler';
+import BpmnModeler from 'bpmn-js/lib/Modeler';
 import { debounce } from '../utils';
 import { InternalEvent, ProcessModelerApi } from '../types';
 import { onMounted, toRaw } from 'vue';
+import { flowableExtensions } from './moddle-extensions/flowable';
+import flowableControlsModule from './additional-modules/flowable';
 
 export function useInit(
   getProcessModelerApi: () => ProcessModelerApi,
@@ -12,13 +14,13 @@ export function useInit(
   dragFileRef: Ref<HTMLElement | undefined>,
   bpmnXml: Ref<string>,
   translator: Ref<(english: string, replacements: Record<string, string>) => string>,
-  bpmnModeler: Ref<typeof BpmnJS>,
+  bpmnModeler: Ref<typeof BpmnModeler>,
   errorMessage: Ref<string>,
   options: Ref<Record<string, unknown>>,
   additionalModules: Ref<Array<unknown>>,
   emit: {
     (eventName: 'api-ready', message: ProcessModelerApi): void;
-    (eventName: 'modeler-ready', message: typeof BpmnJS): void;
+    (eventName: 'modeler-ready', message: typeof BpmnModeler): void;
     (eventName: 'root-added', message: InternalEvent): void;
     (eventName: 'selection-changed', message: InternalEvent): void;
   },
@@ -39,7 +41,8 @@ export function useInit(
     rawAdditionalModules.forEach(additionalModule => {
       newAdditionalModules.push(additionalModule);
     });
-    const rawModeler = new BpmnJS(
+    newAdditionalModules.push(flowableControlsModule);
+    const rawModeler = new BpmnModeler(
       Object.assign(
         {
           container: '#_bpmn-modeler-canvas',
@@ -47,6 +50,9 @@ export function useInit(
             bindTo: keyboardBindTo.value,
           },
           additionalModules: newAdditionalModules,
+          moddleExtensions: {
+            flowable: flowableExtensions,
+          },
         },
         toRaw(options.value),
       ),
