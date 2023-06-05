@@ -3,7 +3,7 @@
     <cn-bpmn-modeler
       :bpmn-xml="bpmnXml"
       :height="height"
-      :options="options"
+      :keyboard-bind-to="keyboardBindTo"
       :additional-modules="additionalModules"
       :translator="translator"
       @update:bpmn-xml="onUpdateBpmnXml"
@@ -26,6 +26,10 @@ const emit = defineEmits<{
 }>();
 
 const props = defineProps({
+  keyboardBindTo: {
+    type: Object,
+    default: window,
+  },
   height: {
     type: [String, Number],
     default: '100%',

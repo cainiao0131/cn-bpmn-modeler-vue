@@ -37,6 +37,10 @@ const emit = defineEmits<{
 }>();
 
 const props = defineProps({
+  keyboardBindTo: {
+    type: Object,
+    default: window,
+  },
   bpmnXml: {
     type: String,
     default: '',
@@ -66,7 +70,7 @@ const props = defineProps({
     },
   },
 });
-const { translator, bpmnXml, additionalModules, options } = toRefs(props);
+const { translator, bpmnXml, additionalModules, options, keyboardBindTo } = toRefs(props);
 
 // bpmn.js 实例
 const bpmnModeler = ref<typeof BpmnJS>();
@@ -168,6 +172,7 @@ useInit(
   importXMLFile,
   emitModelerXml,
   importIfDifferent,
+  keyboardBindTo,
   dragFileRef,
   bpmnXml,
   translator,

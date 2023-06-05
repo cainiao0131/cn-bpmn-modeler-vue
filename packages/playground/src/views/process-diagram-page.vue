@@ -33,7 +33,17 @@
               </a-col>
             </a-row>
           </template>
-          <process-editor v-show="!!selectedProcess" :bpmn-xml="selectedBpmnXml" @update:bpmn-xml="onUpdateBpmnXml" />
+          <a-row type="flex" :style="{ height: '100%' }">
+            <!-- <a-col flex="100px"><div ref="keyboard" :style="{ height: '100%' }"></div></a-col> -->
+            <a-col flex="auto">
+              <process-editor
+                v-show="!!selectedProcess"
+                :keyboard-bind-to="keyboardBindTo"
+                :bpmn-xml="selectedBpmnXml"
+                @update:bpmn-xml="onUpdateBpmnXml"
+              />
+            </a-col>
+          </a-row>
         </a-card>
       </a-col>
       <!-- 添加流程弹框 -->
@@ -77,7 +87,12 @@ import { addNode } from '@/utils';
 import { message } from 'ant-design-vue';
 import { copyText } from '@/utils/domUtils';
 
+const keyboard = ref();
 const processStore = useProcessStore();
+
+const keyboardBindTo = computed(() => {
+  return keyboard.value || window;
+});
 
 const onUpdateTreeData = (nodes: Array<DataNode>) => {
   processStore.setProcessNodes(nodes);

@@ -1,4 +1,4 @@
-import BpmnModeler from 'bpmn-js/lib/Modeler';
+import BpmnJS from 'bpmn-js/lib/Modeler';
 import { debounce } from '../utils';
 import { InternalEvent, ProcessModelerApi } from '../types';
 import { onMounted, toRaw } from 'vue';
@@ -8,16 +8,17 @@ export function useInit(
   importXMLFile: (file: File) => void,
   emitModelerXml: () => void,
   importIfDifferent: (newValue: string, success?: () => void) => void,
+  keyboardBindTo: Ref<unknown>,
   dragFileRef: Ref<HTMLElement | undefined>,
   bpmnXml: Ref<string>,
   translator: Ref<(english: string, replacements: Record<string, string>) => string>,
-  bpmnModeler: Ref<typeof BpmnModeler>,
+  bpmnModeler: Ref<typeof BpmnJS>,
   errorMessage: Ref<string>,
   options: Ref<Record<string, unknown>>,
   additionalModules: Ref<Array<unknown>>,
   emit: {
     (eventName: 'api-ready', message: ProcessModelerApi): void;
-    (eventName: 'modeler-ready', message: typeof BpmnModeler): void;
+    (eventName: 'modeler-ready', message: typeof BpmnJS): void;
     (eventName: 'root-added', message: InternalEvent): void;
     (eventName: 'selection-changed', message: InternalEvent): void;
   },
@@ -38,10 +39,13 @@ export function useInit(
     rawAdditionalModules.forEach(additionalModule => {
       newAdditionalModules.push(additionalModule);
     });
-    const rawModeler = new BpmnModeler(
+    const rawModeler = new BpmnJS(
       Object.assign(
         {
           container: '#_bpmn-modeler-canvas',
+          keyboard: {
+            bindTo: keyboardBindTo.value,
+          },
           additionalModules: newAdditionalModules,
         },
         toRaw(options.value),
