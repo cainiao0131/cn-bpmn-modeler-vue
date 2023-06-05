@@ -1,6 +1,6 @@
 <template>
   <a-layout class="layout-page-wrapper">
-    <a-layout-sider v-model:collapsed="collapsed" collapsible>
+    <a-layout-sider v-model="collapsed" collapsible>
       <div class="logo" />
       <a-menu :selected-keys="selectedKeys" theme="dark" mode="inline" @click="handleClick">
         <a-menu-item key="process-diagram">
