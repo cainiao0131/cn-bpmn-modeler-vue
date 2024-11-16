@@ -28,6 +28,7 @@
 import { AntTreeNodeDropEvent, DataNode } from 'ant-design-vue/es/tree';
 import { findByKey, deleteByKey } from '@/utils';
 import { Modal, ModalFuncProps } from 'ant-design-vue/es';
+import { Key } from 'ant-design-vue/es/vc-tree/interface';
 
 const emit = defineEmits<{
   (eventName: 'update:tree-data', message: Array<DataNode>): void;
@@ -91,11 +92,11 @@ const onDrop = (info: AntTreeNodeDropEvent) => {
       ar.splice(i + 1, 0, dragObj);
     }
   }
-  emitUpdateTreeData(data);
+  emit('update:tree-data', data);
 };
 
-const onUpdateDelectedKeys = (keys: Array<string>) => {
-  emit('update:selected-keys', keys);
+const onUpdateDelectedKeys = (keys: Array<Key>) => {
+  emit('update:selected-keys', keys as Array<string>);
 };
 
 const onContextMenuClick = (nodeInfo: DataNode, { key }: { key: string }) => {

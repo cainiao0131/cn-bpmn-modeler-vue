@@ -4,18 +4,15 @@
       :bpmn-xml="bpmnXml"
       :height="height"
       :keyboard-bind-to="keyboardBindTo"
-      :additional-modules="additionalModules"
       :translator="translator"
       @update:bpmn-xml="onUpdateBpmnXml"
     />
-    <!-- <div id="js-properties-panel" class="properties-panel-parent"></div> -->
   </div>
 </template>
 
 <script lang="ts" setup>
 import BpmnModeler from 'bpmn-js/lib/Modeler';
 import { InternalEvent, ProcessModelerApi } from 'cn-bpmn-modeler-vue';
-import { BpmnPropertiesPanelModule, BpmnPropertiesProviderModule } from 'bpmn-js-properties-panel';
 
 const emit = defineEmits<{
   (eventName: 'api-ready', message: ProcessModelerApi): void;
@@ -60,12 +57,8 @@ const options = ref({
     parent: '#js-properties-panel',
   },
 });
-const additionalModules = ref([BpmnPropertiesPanelModule, BpmnPropertiesProviderModule]);
 </script>
 
-<style lang="less">
-@import 'bpmn-js-properties-panel/dist/assets/properties-panel.css';
-</style>
 <style lang="less" scoped>
 .bpmn-editor-wrapper {
   .properties-panel-parent {

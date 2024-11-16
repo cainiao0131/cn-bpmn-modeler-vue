@@ -4,7 +4,7 @@
       <a-col flex="20rem">
         <a-card title="流程" class="list-card">
           <template #extra>
-            <a-button type="link" @click="addProcess">添加</a-button>
+            <a-button type="link" @click="addProcess()">添加</a-button>
           </template>
           <directory-list
             ref="directoryListRef"
@@ -47,13 +47,7 @@
         </a-card>
       </a-col>
       <!-- 添加流程弹框 -->
-      <a-modal
-        v-model:visible="addProcessVisible"
-        title="添加流程"
-        cancel-text="取消"
-        ok-text="确定"
-        @ok="onAddProcessOk"
-      >
+      <a-modal v-model:open="addProcessVisible" title="添加流程" cancel-text="取消" ok-text="确定" @ok="onAddProcessOk">
         <a-form ref="addProcessFormRef" :model="addProcessFormState">
           <a-form-item
             label="流程名称"
@@ -66,17 +60,15 @@
       </a-modal>
     </a-row>
     <!-- 预览 -->
-    <a-drawer v-model:visible="previewVisible" width="70%" title="预览" placement="left" :closable="false">
+    <a-drawer v-model:open="previewVisible" width="70%" title="预览" placement="left" :closable="false">
       <template #extra>
         <a-button type="primary" @click="copyPreview">复制</a-button>
       </template>
-      <codemirror v-model="selectedBpmnXml" disabled />
     </a-drawer>
   </div>
 </template>
 
 <script setup lang="ts">
-import { Codemirror } from 'vue-codemirror';
 import DirectoryList from '@/components/directory-list/directory-list.vue';
 import { useProcessStore } from '@/store/process-store';
 import { guid } from '@/utils';

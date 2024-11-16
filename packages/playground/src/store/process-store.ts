@@ -27,8 +27,4 @@ export const useProcessStore = defineStore('process-store', {
       this.processNodes = processNodes;
     },
   },
-  persist: {
-    key: 'process-store',
-    storage: localStorage,
-  },
 });

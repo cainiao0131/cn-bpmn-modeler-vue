@@ -1,6 +1,6 @@
 import { createApp } from 'vue';
 import App from '@/App.vue';
-import 'ant-design-vue/dist/antd.variable.less';
+import 'ant-design-vue/dist/reset.css';
 import plugins from '@/plugins';
 import { initSore } from './store/init-store';
 

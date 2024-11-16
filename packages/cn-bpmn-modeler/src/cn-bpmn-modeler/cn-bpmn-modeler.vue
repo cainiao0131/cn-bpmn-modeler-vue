@@ -64,9 +64,7 @@ const props = defineProps({
   additionalModules: {
     type: Array,
     default: () => {
-      return () => {
-        return [];
-      };
+      return [];
     },
   },
 });
@@ -188,7 +186,6 @@ useInit(
 @import 'bpmn-js/dist/assets/bpmn-js.css';
 @import 'bpmn-js/dist/assets/diagram-js.css';
 @import 'bpmn-js/dist/assets/bpmn-font/css/bpmn.css';
-@import 'bpmn-js-properties-panel/dist/assets/properties-panel.css';
 </style>
 <style lang="less" scoped>
 .bpmn-modeler-wrapper {
