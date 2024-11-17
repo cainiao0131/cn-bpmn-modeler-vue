@@ -38,12 +38,7 @@
           </template>
           <a-row type="flex">
             <a-col flex="auto">
-              <!-- <cn-bpmn-modeler
-                :height="`calc(100vh - ${cardHeight + 30}px)`"
-                :bpmn-xml="selectedBpmnXml"
-                @update:bpmn-xml="onUpdateBpmnXml"
-              /> -->
-              <bpmn-modeler
+              <cn-bpmn-modeler
                 :height="`calc(100vh - ${cardHeight + 30}px)`"
                 :bpmn-xml="selectedBpmnXml"
                 @update:bpmn-xml="onUpdateBpmnXml"
@@ -83,7 +78,6 @@ import { DataNode } from 'ant-design-vue/es/tree';
 import { addNode } from '@/utils';
 import { message } from 'ant-design-vue';
 import { copyText } from '@/utils/domUtils';
-import { BpmnSaveValue } from '@/components/flow/bpmn-modeler/bpmn-modeler.vue';
 
 const processStore = useProcessStore();
 
@@ -123,7 +117,7 @@ const selectedBpmnXml = computed<string>(() => {
 });
 const selectedKeys = ref<Array<string>>([]);
 
-const onUpdateBpmnXml = (xml: BpmnSaveValue) => {
+const onUpdateBpmnXml = (xml: string) => {
   const newSelectedProcess = selectedProcess.value;
   if (!newSelectedProcess) {
     return;

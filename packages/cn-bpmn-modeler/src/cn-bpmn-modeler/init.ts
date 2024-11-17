@@ -1,22 +1,12 @@
 import BpmnModeler from 'bpmn-js/lib/Modeler';
-import { debounce, getAttribute, guid, toArray, toStringArray } from '../utils';
-import {
-  ARRAY_KEYS,
-  BpmnBusiness,
-  BpmnElement,
-  EmitType,
-  InternalEvent,
-  NAMESPACE,
-  ProcessModelerApi,
-  Root,
-} from '../types';
+import { debounce, getAttribute, guid, toArray, toStringArray } from './util/util';
 import { onMounted, toRaw } from 'vue';
 import { flowableExtensions } from './moddle-extensions/flowable';
 import flowableControlsModule from './additional-modules/flowable';
+import { ARRAY_KEYS, BpmnBusiness, BpmnElement, EmitType, InternalEvent, NAMESPACE, Root } from './types';
 
 export function useInit(
   emit: EmitType,
-  getProcessModelerApi: () => ProcessModelerApi,
   importXMLFile: (file: File) => void,
   emitXmlOfModeler: () => void,
   updateXmlOfModelerIfDifferent: (newValue: string, success?: () => void) => void,
@@ -42,21 +32,29 @@ export function useInit(
     canvasId.value = canvasId_;
     nextTick(() => {
       /**
-       {
-          translate: [
-            'value',
-            (english: string, replacements: Record<string, string>) => {
-              return translator.value(english, replacements) || english;
-            },
-          ],
-        },
-      */
+         {
+            translate: [
+              'value',
+              (english: string, replacements: Record<string, string>) => {
+                return translator.value(english, replacements) || english;
+              },
+            ],
+          },
+        */
       const newAdditionalModules: Array<unknown> = [];
       const rawAdditionalModules = toRaw(additionalModules.value);
       rawAdditionalModules.forEach(additionalModule => {
         newAdditionalModules.push(additionalModule);
       });
       newAdditionalModules.push(flowableControlsModule);
+      newAdditionalModules.push({
+        translate: [
+          'value',
+          (english: string, replacements: Record<string, string>) => {
+            return translator.value(english, replacements) || english;
+          },
+        ],
+      });
       const rawModeler = new BpmnModeler(
         Object.assign(
           {
@@ -125,18 +123,18 @@ export function useInit(
         const newSelection = internalEvent.newSelection;
         const element = !newSelection || newSelection.length < 1 ? undefined : (newSelection[0] as BpmnElement);
         selectedElement.value = element;
-        updateAndEmitSelectedProperties(element);
+        emitPropertiesOfElement(element);
       });
       // 元素属性变化事件
       // TODO 待验证：外部通过 API 更新 modeler 时，会触发这个事件吗？
-      rawModeler.on('element.changed', (e: InternalEvent) => {
+      rawModeler.on('element.changed', (internalEvent: InternalEvent) => {
         /**
          * 元素改变时，改变的元素不一定是选中的元素
          * 因为无论选中什么元素，都能编辑流程根节点的属性，改变根节点的属性时，触发这个事件，对象为根节点，而不是选中的节点
          * 这时不应该更新选中元素的属性
          */
-        if (toRaw(selectedElement.value) == e.element) {
-          updateAndEmitSelectedProperties(e.element);
+        if (toRaw(selectedElement.value) == internalEvent.element) {
+          emitPropertiesOfElement(internalEvent.element);
         }
       });
 
@@ -146,16 +144,17 @@ export function useInit(
        */
       updateXmlOfModelerIfDifferent(bpmnXml.value);
 
-      emit('api-ready', getProcessModelerApi());
+      // 打印所有事件 console.log(bpmnModeler.value.get('eventBus'));
     });
   };
 
   /**
+   * 解析 BPMN 元素对象，得到并弹出用于对外的元素属性对象
    * 改选了元素，或模型编辑器改变了选中元素的属性时调用
    *
    * @param element 选中的元素
    */
-  const updateAndEmitSelectedProperties = (element?: BpmnElement) => {
+  const emitPropertiesOfElement = (element?: BpmnElement) => {
     if (!element) {
       // 未选中元素，视为选中根节点流程对象
       const root: { id?: string; type?: string; name?: string } = bpmnRoot.value as {
@@ -236,5 +235,5 @@ export function useInit(
       }
     }
   };
-  return { bpmnModeler };
+  return {};
 }
