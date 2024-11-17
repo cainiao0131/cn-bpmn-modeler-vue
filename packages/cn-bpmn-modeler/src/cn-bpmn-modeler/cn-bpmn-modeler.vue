@@ -2,7 +2,7 @@
   <div class="bpmn-modeler-wrapper" :style="{ height }">
     <div class="content">
       <!-- 提示 -->
-      <div v-show="isShowDrag" ref="dragFileRef" class="message">
+      <div v-show="isShowDragTip" ref="dragFileRef" class="message">
         <div class="note">可拖动 BPMN 文件到这里</div>
       </div>
       <!-- 错误消息 -->
@@ -15,44 +15,40 @@
           </div>
         </div>
       </div>
-      <div v-show="hasDiagram" id="_bpmn-modeler-canvas" class="canvas" />
+      <div v-show="hasDiagram" :id="canvasId" class="canvas" />
     </div>
   </div>
 </template>
 
 <script lang="ts" setup>
 import { ref, computed, watch, toRefs, PropType } from 'vue';
-import BpmnJS from 'bpmn-js/lib/Modeler';
+import BpmnModeler from 'bpmn-js/lib/Modeler';
 import { getInitialXml } from '../utils';
 import { useImportToModeler } from './import-to-modeler';
 import { useInit } from './init';
-import { InternalEvent, ProcessModelerApi } from '../types';
+import { BpmnElement, DIRECT_KEYS, ElementProperties, EmitType, ProcessModelerApi, Root, SPECIAL_KEYS } from '../types';
 
-const emit = defineEmits<{
-  (eventName: 'update:bpmn-xml', message: string): void;
-  (eventName: 'api-ready', message: ProcessModelerApi): void;
-  (eventName: 'modeler-ready', message: typeof BpmnJS): void;
-  (eventName: 'root-added', message: InternalEvent): void;
-  (eventName: 'selection-changed', message: InternalEvent): void;
-}>();
+const emit = defineEmits<EmitType>();
 
 const props = defineProps({
-  keyboardBindTo: {
-    type: Object,
-    default: window,
+  height: {
+    type: [String, Number],
+    default: '100%',
   },
   bpmnXml: {
     type: String,
     default: '',
   },
-  height: {
-    type: [String, Number],
-    default: '100%',
-  },
   translator: {
     type: Function as PropType<(english: string, replacements: Record<string, string>) => string>,
     default: () => {
       return () => undefined;
+    },
+  },
+  keyboardBindTo: {
+    type: Object,
+    default: () => {
+      return window;
     },
   },
   options: {
@@ -67,11 +63,40 @@ const props = defineProps({
       return [];
     },
   },
+  /**
+   * 用户任务创建事件监听器表达式，可以直接调用 Spring Bean 方法
+   */
+  userTaskCreateEventListenerExpression: {
+    type: String,
+    default: '${userTaskService.onCreate(task)}',
+  },
+  /**
+   * 用户任务完成事件监听器表达式，可以直接调用 Spring Bean 方法
+   */
+  userTaskCompleteEventListenerExpression: {
+    type: String,
+    default: '${userTaskService.onComplete(task)}',
+  },
 });
-const { translator, bpmnXml, additionalModules, options, keyboardBindTo } = toRefs(props);
+const {
+  translator,
+  bpmnXml,
+  additionalModules,
+  options,
+  keyboardBindTo,
+  userTaskCreateEventListenerExpression,
+  userTaskCompleteEventListenerExpression,
+} = toRefs(props);
+
+const canvasId = ref('_canvas_id');
 
 // bpmn.js 实例
-const bpmnModeler = ref<typeof BpmnJS>();
+const bpmnModeler = ref<typeof BpmnModeler>();
+// 根节点
+const bpmnRoot = ref<Root>();
+// 选中的元素
+const selectedElement = ref<BpmnElement>();
+
 // 拖动文件的组件，ref 不能放到组合式函数中，否则无法绑定组件引用
 const dragFileRef = ref<HTMLElement>();
 // 错误消息
@@ -82,13 +107,11 @@ const isShowError = computed(() => {
 });
 // 是否有图表内容
 const hasDiagram = computed(() => {
-  if (!bpmnXml.value) {
-    return false;
-  }
-  return !!bpmnXml.value.trim();
+  const bpmnXml_ = bpmnXml.value;
+  return !!bpmnXml_ && !!bpmnXml_.trim();
 });
-// 是否展示提示
-const isShowDrag = computed(() => {
+// 是否展示拖动提示
+const isShowDragTip = computed(() => {
   return !isShowError.value && !hasDiagram.value;
 });
 
@@ -96,9 +119,9 @@ const isShowDrag = computed(() => {
  * 将 bpmnXml 更新为 Modeler 的最新值
  * 具体的：从 Modeler 中获取最新的 XML 并弹出
  */
-const emitModelerXml = () => {
+const emitXmlOfModeler = () => {
   bpmnModeler.value
-    .saveXML({ format: true })
+    ?.saveXML({ format: true })
     .then(({ xml }: { xml: string }) => {
       emit('update:bpmn-xml', xml || '');
     })
@@ -109,10 +132,11 @@ const emitModelerXml = () => {
 };
 
 // 导入数据到 Modeler
-const { importIfDifferent, importAndEmitIfDifferent, importXMLFile } = useImportToModeler(
+const { updateXmlIfDifferent, importAndEmitIfDifferent, importXMLFile } = useImportToModeler(
   bpmnModeler,
   errorMessage,
-  emitModelerXml,
+  emitXmlOfModeler,
+  emit,
 );
 
 /**
@@ -120,37 +144,155 @@ const { importIfDifferent, importAndEmitIfDifferent, importXMLFile } = useImport
  * 在 onMounted 中 插入一下初始值
  */
 watch(bpmnXml, newValue => {
-  importIfDifferent(newValue);
+  updateXmlIfDifferent(newValue);
 });
+
+/**
+ * 外部更新元素属性，调用 bpmn.js API 时，将待更新的属性数据结构转换为 API 需要的数据结构
+ *
+ * @param properties 新的属性
+ * @param element 待更新的元素
+ */
+const getPropertiesToUpdate = (
+  bpmnModeler_: typeof BpmnModeler,
+  properties: ElementProperties,
+  element?: { type: string; id: string },
+): ElementProperties => {
+  const cleanProperties: ElementProperties = {};
+  for (const key in properties) {
+    if (DIRECT_KEYS.includes(key)) {
+      cleanProperties[key] = properties[key] ?? '';
+    } else if (!SPECIAL_KEYS.includes(key)) {
+      cleanProperties[`flowable:${key}`] = properties[key] ?? undefined;
+    }
+  }
+
+  const elementType = element?.type;
+  if (elementType == 'bpmn:SequenceFlow' && properties?.sourceType == 'bpmn:ExclusiveGateway') {
+    // 为互斥网关流程线的 conditionExpression 创建子元素
+    cleanProperties.conditionExpression = properties.conditionExpression
+      ? bpmnModeler_.create('bpmn:FormalExpression', {
+          body: properties.conditionExpression,
+        })
+      : undefined;
+  } else if (elementType == 'bpmn:UserTask') {
+    if (!properties.createTaskEvent && !properties.completeTaskEvent) {
+      cleanProperties.extensionElements = undefined;
+    } else {
+      const bpmnFactory = bpmnModeler_.get('bpmnFactory') as {
+        create: (type: string, attributes: object) => unknown;
+      };
+      const values: Array<unknown> = [];
+      // 任务创建事件监听器
+      if (properties.createTaskEvent) {
+        values.push(
+          bpmnFactory.create('flowable:TaskListener', {
+            event: 'create',
+            expression: userTaskCreateEventListenerExpression.value,
+          }),
+        );
+      }
+      // 任务完成事件监听器
+      if (properties.completeTaskEvent) {
+        values.push(
+          bpmnFactory.create('flowable:TaskListener', {
+            event: 'complete',
+            expression: userTaskCompleteEventListenerExpression.value,
+          }),
+        );
+      }
+      cleanProperties.extensionElements = bpmnFactory.create('bpmn:ExtensionElements', { values });
+    }
+
+    // 多人任务
+    const elementId = element?.id;
+    if (elementId && properties.multiInstance) {
+      // 多实例任务，elementId 用作委托人变量名的命名空间，防止受到其它流程变量的影响
+      const elementVariable = 'assignee_' + elementId;
+      const assigneesString = properties?.assignee ?? '';
+      const loopCharacteristics = bpmnModeler_.create('bpmn:MultiInstanceLoopCharacteristics', {
+        isSequential: !!properties.isSequential,
+        'flowable:collection': '${' + `flowTaskService.getCollection(execution, '${assigneesString}')}`,
+        'flowable:elementVariable': elementVariable,
+      });
+      if (properties.completionConditionCount) {
+        const completionCondition = bpmnModeler_.create('bpmn:Expression');
+        completionCondition.body = '${' + `nrOfCompletedInstances >= ${properties.completionConditionCount}}`;
+        loopCharacteristics.completionCondition = completionCondition;
+      }
+      cleanProperties.loopCharacteristics = loopCharacteristics;
+      // 从 flowable:collection 表达式中解析多个委托人太复杂了，因此还是将其保存在用户任务的 flowable:assignees 属性中方便回显与取值
+      cleanProperties['flowable:assignees'] = assigneesString;
+      cleanProperties['flowable:assignee'] = '${' + elementVariable + '}';
+    } else {
+      cleanProperties.loopCharacteristics = undefined;
+      cleanProperties['flowable:assignees'] = undefined;
+    }
+  }
+
+  return cleanProperties;
+};
+
+const updateProperties = (element?: unknown, properties?: ElementProperties) => {
+  const bpmnModeler_ = bpmnModeler.value;
+  if (!properties || !bpmnModeler_) {
+    return;
+  }
+  const modeling: { updateProperties: (object: unknown, elementProperties: ElementProperties) => void } | undefined =
+    bpmnModeler_.get('modeling');
+  if (!modeling) {
+    return;
+  }
+  /**
+   * element 是 Vue 的 Ref 代理对象，
+   * bpmn.js 的 API 中某些操作会更新代理类的只读属性导致报错，
+   * 通过 toRaw() 得到原对象
+   * element 不存在时，则更新根节点属性
+   */
+  modeling.updateProperties(toRaw(element ?? bpmnRoot.value), getPropertiesToUpdate(properties, bpmnModeler_));
+};
+
+/**
+ * 更新选中元素的属性
+ *
+ * @param properties 元素属性
+ */
+const updatePropertiesOfSelected = (properties?: ElementProperties) => {
+  updateProperties(selectedElement.value, properties);
+};
 
 const getProcessModelerApi = (): ProcessModelerApi => {
   return {
     newProcess: () => {
       importAndEmitIfDifferent(getInitialXml());
     },
-    updateProperties: (element: unknown, properties: Record<string, string | Array<unknown> | null>) => {
-      // 复制一下，避免对其的兼容性修改影响到原对象
-      const copyProperties = Object.assign({}, properties);
-      const documentation = copyProperties.documentation;
-      copyProperties.documentation = documentation
-        ? [bpmnModeler.value.get('moddle').create('bpmn:Documentation', { text: documentation })]
-        : [];
-      /**
-       * 需要通过 toRaw() 获得原始对象
-       * 因为 bpmn.js 的 API 中某些操作会设置代理类的只读属性导致报错
-       */
-      bpmnModeler.value.get('modeling').updateProperties(toRaw(element), copyProperties);
+    updatePropertiesOfSelected,
+    updateRootProperty: (key: string, value: string) => {
+      const root: { id?: string; type?: string; name?: string } = bpmnRoot.value as {
+        id?: string;
+        type?: string;
+        name?: string;
+      };
+      updateProperties(undefined, {
+        id: root?.id ?? '',
+        type: root?.type ?? '',
+        name: root?.name ?? '',
+        [key]: value,
+      });
     },
     undo: () => {
-      bpmnModeler.value.get('commandStack').undo();
+      commandStack.value.undo();
     },
     redo: () => {
-      bpmnModeler.value.get('commandStack').redo();
+      commandStack.value.redo();
+    },
+    clear: () => {
+      bpmnModeler.value?.clear();
     },
     getSVG: (): Promise<string> => {
       return new Promise((resolve, reject) => {
         bpmnModeler.value
-          .saveSVG()
+          ?.saveSVG()
           .then(({ svg }: { svg: string }) => {
             resolve(svg);
           })
@@ -166,20 +308,30 @@ const getProcessModelerApi = (): ProcessModelerApi => {
 };
 
 useInit(
+  emit,
   getProcessModelerApi,
   importXMLFile,
-  emitModelerXml,
-  importIfDifferent,
+  emitXmlOfModeler,
+  updateXmlIfDifferent,
+  canvasId,
   keyboardBindTo,
   dragFileRef,
   bpmnXml,
   translator,
   bpmnModeler,
+  bpmnRoot,
+  selectedElement,
   errorMessage,
   options,
   additionalModules,
-  emit,
 );
+
+const commandStack = computed((): { undo: () => void; redo: () => void } => {
+  if (!bpmnModeler.value) {
+    return { undo: () => {}, redo: () => {} };
+  }
+  return bpmnModeler.value.get('commandStack');
+});
 </script>
 
 <style lang="less">
@@ -189,9 +341,6 @@ useInit(
 </style>
 <style lang="less" scoped>
 .bpmn-modeler-wrapper {
-  :deep(.bjs-powered-by) {
-    display: none;
-  }
   .content,
   .content > div {
     width: 100%;
@@ -199,21 +348,6 @@ useInit(
     overflow: hidden;
   }
   .content {
-    .properties-panel-parent {
-      border-left: 1px solid #ccc;
-      overflow: auto;
-      top: 0;
-      position: absolute;
-      right: 0;
-      width: 200px;
-      &:empty {
-        display: none;
-      }
-      > .djs-properties-panel {
-        padding-bottom: 70px;
-        min-height: 100%;
-      }
-    }
     > .message {
       text-align: center;
       display: table;

@@ -2,7 +2,11 @@
   <div class="process-diagram-page-wrapper">
     <a-row type="flex" class="process-diagram-page-row" :gutter="10">
       <a-col flex="20rem">
-        <a-card title="流程" class="list-card">
+        <a-card
+          title="流程"
+          class="list-card"
+          :body-style="{ height: `calc(100vh - ${cardHeight}px)`, overflow: 'auto' }"
+        >
           <template #extra>
             <a-button type="link" @click="addProcess()">添加</a-button>
           </template>
@@ -19,8 +23,7 @@
         <a-card
           :title="diagramTitle"
           class="diagram-card"
-          :head-style="{ minHeight: 'unset' }"
-          :body-style="{ height: '100%' }"
+          :body-style="{ height: `calc(100vh - ${cardHeight}px)`, overflow: 'auto', paddingBottom: 0 }"
         >
           <template #extra>
             <a-row :gutter="10">
@@ -33,12 +36,10 @@
               </a-col>
             </a-row>
           </template>
-          <a-row type="flex" :style="{ height: '100%' }">
-            <!-- <a-col flex="100px"><div ref="keyboard" :style="{ height: '100%' }"></div></a-col> -->
+          <a-row type="flex">
             <a-col flex="auto">
-              <process-editor
-                v-show="!!selectedProcess"
-                :keyboard-bind-to="keyboardBindTo"
+              <cn-bpmn-modeler
+                :height="`calc(100vh - ${cardHeight + 30}px)`"
                 :bpmn-xml="selectedBpmnXml"
                 @update:bpmn-xml="onUpdateBpmnXml"
               />
@@ -74,17 +75,13 @@ import { useProcessStore } from '@/store/process-store';
 import { guid } from '@/utils';
 import { Form } from 'ant-design-vue/es';
 import { DataNode } from 'ant-design-vue/es/tree';
-import ProcessEditor from '@/components/process-editor.vue';
 import { addNode } from '@/utils';
 import { message } from 'ant-design-vue';
 import { copyText } from '@/utils/domUtils';
 
-const keyboard = ref();
 const processStore = useProcessStore();
 
-const keyboardBindTo = computed(() => {
-  return keyboard.value || window;
-});
+const cardHeight = ref(152);
 
 const onUpdateTreeData = (nodes: Array<DataNode>) => {
   processStore.setProcessNodes(nodes);
@@ -179,13 +176,9 @@ const onSaveClick = () => {
   height: 100%;
   .process-diagram-page-row {
     height: 100%;
-    .list-card {
-      height: 100%;
-    }
     .diagram-card {
       display: flex;
       flex-direction: column;
-      height: 100%;
     }
   }
 }

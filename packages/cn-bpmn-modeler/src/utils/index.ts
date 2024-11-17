@@ -1,9 +1,17 @@
+import { NAMESPACE } from '../types';
+
+export const guid = () => {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+    const r = (Math.random() * 16) | 0,
+      v = c == 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+};
+
 // 防抖
 export const debounce = (fn: (param1?: unknown, param2?: unknown) => void, timeout: number) => {
   let timer: NodeJS.Timeout;
   return (param1: unknown, param2: unknown) => {
-    console.log('');
-    console.log('debounce');
     if (timer) {
       clearTimeout(timer);
     }
@@ -27,4 +35,38 @@ export const getInitialXml = (): string => {
 </bpmndi:BPMNPlane>\
 </bpmndi:BPMNDiagram>\
 </bpmn2:definitions>';
+};
+
+export const toArray = (val?: string) => {
+  if (!val) {
+    return undefined;
+  }
+  let str;
+  if (typeof val == 'string') {
+    if (val.includes(',')) {
+      str = val.split(',');
+    } else {
+      str = [val];
+    }
+  } else {
+    str = val;
+  }
+  return str;
+};
+
+export const toStringArray = (val?: unknown) => {
+  if (!val) {
+    return undefined;
+  }
+  let str: string[] | undefined;
+  if (typeof val == 'string') {
+    str = val.split(',');
+  } else {
+    str = val as string[];
+  }
+  return str;
+};
+
+export const getAttribute = (key: string, attrs_?: Record<string, string>) => {
+  return attrs_ ? attrs_[`${NAMESPACE}${key}`] : undefined;
 };
