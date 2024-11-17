@@ -24,7 +24,7 @@
 import BpmnModeler from 'bpmn-js/lib/Modeler';
 import { Moddle, SaveXMLResult } from 'bpmn-js/lib/BaseViewer';
 import { getInitialXml } from './util/util';
-import { ElementProperties, EmitType, FormValueType, Root } from './types';
+import { DIRECT_KEYS, ElementProperties, EmitType, FormValueType, NAMESPACE, Root } from './types';
 import { useInit } from './init';
 import { useUpdateXmlOfModeler } from './update-xml-of-modeler';
 
@@ -86,7 +86,17 @@ const props = defineProps({
     default: '',
   },
 });
-const { bpmnXml, additionalModules, keyboardBindTo, options, translator, processId, processName } = toRefs(props);
+const {
+  bpmnXml,
+  additionalModules,
+  keyboardBindTo,
+  options,
+  translator,
+  processId,
+  processName,
+  userTaskCreateEventListenerExpression,
+  userTaskCompleteEventListenerExpression,
+} = toRefs(props);
 
 const canvasId = ref('_canvas_id');
 
@@ -102,32 +112,6 @@ const dragFileRef = ref<HTMLElement>();
 // 选中的元素
 const selectedElement = ref();
 
-export type PropertyKeyType =
-  | 'id'
-  | 'name'
-  | 'formKey'
-  | 'assignee'
-  | 'service'
-  | 'conditionExpression'
-  | 'class'
-  | 'parameter'
-  | 'multiInstance'
-  | 'isSequential'
-  | 'completionConditionCount'
-  | 'createTaskEvent'
-  | 'completeTaskEvent';
-export type PropertyValueType = string | boolean | number | undefined;
-
-export type BusinessObjectType = {
-  id: string;
-  name?: string;
-  sourceRef?: { $type: string };
-  conditionExpression?: { body?: FormValueType };
-  loopCharacteristics?: { assignees?: string; isSequential?: boolean };
-  formKey?: unknown;
-};
-
-const directKeys = ['name', 'id', 'text'];
 const specialKeys = ['conditionExpression', 'multiInstance', 'isSequential', 'createTaskEvent', 'completeTaskEvent'];
 
 // 将文件转换为字符串后导入 BPMN modeler
@@ -193,10 +177,10 @@ const getPropertiesToUpdate = (
 ): ElementProperties => {
   const cleanProperties: ElementProperties = {};
   for (const key in properties) {
-    if (directKeys.includes(key)) {
+    if (DIRECT_KEYS.includes(key)) {
       cleanProperties[key] = properties[key] ?? '';
     } else if (!specialKeys.includes(key)) {
-      cleanProperties[`flowable:${key}`] = properties[key] ?? undefined;
+      cleanProperties[`${NAMESPACE}${key}`] = properties[key] ?? undefined;
     }
   }
 
@@ -220,7 +204,7 @@ const getPropertiesToUpdate = (
         values.push(
           bpmnFactory.create('flowable:TaskListener', {
             event: 'create',
-            expression: '${userTaskService.onCreate(task)}',
+            expression: userTaskCreateEventListenerExpression.value,
           }),
         );
       }
@@ -229,7 +213,7 @@ const getPropertiesToUpdate = (
         values.push(
           bpmnFactory.create('flowable:TaskListener', {
             event: 'complete',
-            expression: '${userTaskService.onComplete(task)}',
+            expression: userTaskCompleteEventListenerExpression.value,
           }),
         );
       }
