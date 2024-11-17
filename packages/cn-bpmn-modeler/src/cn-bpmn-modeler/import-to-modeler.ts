@@ -22,10 +22,6 @@ export function useImportToModeler(
             setTimeout(() => {
               // 根据当前窗口居中
               const canvas = bpmnModeler_.get('canvas') as { zoom: (a: string, b: string) => void };
-              // canvas.zoom('fit-viewport', 'auto');
-              console.log('');
-              console.log('canvas >>> canvas =', canvas);
-              console.log('canvas >>> canvas.zoom =', canvas.zoom);
               canvas.zoom('fit-viewport', 'auto');
             }, 1);
             if (success) {
