@@ -123,7 +123,7 @@ export function useInit(
         const newSelection = internalEvent.newSelection;
         const element = !newSelection || newSelection.length < 1 ? undefined : (newSelection[0] as BpmnElement);
         selectedElement.value = element;
-        updateAndEmitSelectedProperties(element);
+        emitPropertiesOfElement(element);
       });
       // 元素属性变化事件
       // TODO 待验证：外部通过 API 更新 modeler 时，会触发这个事件吗？
@@ -134,7 +134,7 @@ export function useInit(
          * 这时不应该更新选中元素的属性
          */
         if (toRaw(selectedElement.value) == internalEvent.element) {
-          updateAndEmitSelectedProperties(internalEvent.element);
+          emitPropertiesOfElement(internalEvent.element);
         }
       });
 
@@ -149,11 +149,12 @@ export function useInit(
   };
 
   /**
+   * 解析 BPMN 元素对象，得到并弹出用于对外的元素属性对象
    * 改选了元素，或模型编辑器改变了选中元素的属性时调用
    *
    * @param element 选中的元素
    */
-  const updateAndEmitSelectedProperties = (element?: BpmnElement) => {
+  const emitPropertiesOfElement = (element?: BpmnElement) => {
     if (!element) {
       // 未选中元素，视为选中根节点流程对象
       const root: { id?: string; type?: string; name?: string } = bpmnRoot.value as {
