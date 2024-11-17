@@ -132,7 +132,7 @@ const emitXmlOfModeler = () => {
 };
 
 // 导入数据到 Modeler
-const { updateXmlIfDifferent, importAndEmitIfDifferent, importXMLFile } = useImportToModeler(
+const { updateXmlOfModelerIfDifferent, importAndEmitIfDifferent, importXMLFile } = useImportToModeler(
   bpmnModeler,
   errorMessage,
   emitXmlOfModeler,
@@ -144,7 +144,7 @@ const { updateXmlIfDifferent, importAndEmitIfDifferent, importXMLFile } = useImp
  * 在 onMounted 中 插入一下初始值
  */
 watch(bpmnXml, newValue => {
-  updateXmlIfDifferent(newValue);
+  updateXmlOfModelerIfDifferent(newValue);
 });
 
 /**
@@ -310,7 +310,7 @@ useInit(
   getProcessModelerApi,
   importXMLFile,
   emitXmlOfModeler,
-  updateXmlIfDifferent,
+  updateXmlOfModelerIfDifferent,
   canvasId,
   keyboardBindTo,
   dragFileRef,

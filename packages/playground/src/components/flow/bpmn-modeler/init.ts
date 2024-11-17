@@ -9,7 +9,7 @@ export function useInit(
   emit: EmitType,
   importXMLFile: (file: File) => void,
   emitXmlOfModeler: () => void,
-  updateXmlIfDifferent: (newValue: string, success?: () => void) => void,
+  updateXmlOfModelerIfDifferent: (newValue: string, success?: () => void) => void,
   canvasId: Ref<string>,
   keyboardBindTo: Ref<unknown>,
   dragFileRef: Ref<HTMLElement | undefined>,
@@ -142,7 +142,7 @@ export function useInit(
        * watch bpmnXml 没有设置 immediate，因为那时 bpmnModeler 还没准备好
        * 在 onMounted 中导入一下 bpmnXml 的初始值
        */
-      updateXmlIfDifferent(bpmnXml.value);
+      updateXmlOfModelerIfDifferent(bpmnXml.value);
 
       // 打印所有事件 console.log(bpmnModeler.value.get('eventBus'));
     });

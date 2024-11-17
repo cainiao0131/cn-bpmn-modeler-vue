@@ -10,7 +10,7 @@ export function useImportToModeler(
   /**
    * 将 XML 字符串导入 Modeler，如果导入成功则执行 success
    */
-  const updateXml = (newVal?: string, success?: () => void) => {
+  const updateXmlOfModeler = (newVal?: string, success?: () => void) => {
     if (newVal) {
       const bpmnModeler_ = bpmnModeler.value;
       if (bpmnModeler_) {
@@ -30,8 +30,8 @@ export function useImportToModeler(
           })
           .catch((err: { message: string }) => {
             errorMessage.value = err.message || '更新 XML 失败';
-            console.error('updateXml() >>> newVal =', newVal);
-            console.error('updateXml() >>> err =', err);
+            console.error('updateXmlOfModeler() >>> newVal =', newVal);
+            console.error('updateXmlOfModeler() >>> err =', err);
             emit('update:bpmn-xml', '');
           });
       }
@@ -45,16 +45,16 @@ export function useImportToModeler(
    * 更新 Xml，只有 Xml 有变化时才插入。
    * 因为插入会导致图像闪烁以及失去焦点，尽量避免不必要的插入。
    */
-  const updateXmlIfDifferent = (newValue: string, success?: () => void) => {
+  const updateXmlOfModelerIfDifferent = (newValue: string, success?: () => void) => {
     bpmnModeler.value
       .saveXML({ format: true })
       .then(({ xml }: { xml: string }) => {
         if (newValue != xml) {
-          updateXml(newValue, success);
+          updateXmlOfModeler(newValue, success);
         }
       })
       .catch(() => {
-        updateXml(newValue, success);
+        updateXmlOfModeler(newValue, success);
       });
   };
 
@@ -68,7 +68,7 @@ export function useImportToModeler(
    * 3）导入文件或新建，在更新 Modeler 成功后更新 bpmnXml，调用：importAndEmitIfDifferent。
    */
   const importAndEmitIfDifferent = (newValue: string) => {
-    updateXmlIfDifferent(newValue, () => {
+    updateXmlOfModelerIfDifferent(newValue, () => {
       emitXmlOfModeler();
     });
   };
@@ -85,5 +85,5 @@ export function useImportToModeler(
     };
     reader.readAsText(file);
   };
-  return { updateXmlIfDifferent, importAndEmitIfDifferent, importXMLFile };
+  return { updateXmlOfModelerIfDifferent, importAndEmitIfDifferent, importXMLFile };
 }

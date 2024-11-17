@@ -95,25 +95,33 @@ const bpmnModeler = ref<typeof BpmnModeler>();
 const bpmnRoot = ref<Root>();
 
 /**
+ * 更新 Xml，只有 Xml 有变化时才插入。
+ * 因为插入会导致图像闪烁以及失去焦点，尽量避免不必要的插入。
+ */
+const updateXmlOfModelerIfDifferent = (newValue: string, success?: () => void) => {
+  bpmnModeler.value
+    .saveXML({ format: true })
+    .then((saveXMLResult: SaveXMLResult) => {
+      if (newValue != saveXMLResult.xml) {
+        updateXmlOfModeler(newValue, success);
+      }
+    })
+    .catch(() => {
+      updateXmlOfModeler(newValue, success);
+    });
+};
+
+/**
  * 重新绘制图表会导致位移
  * 因此只希望外部设置新的值时重新绘制
  * 流程图内部自己改变了值时，图表已经绘制为新的图了，这种情况导致的 bpmnXml 变化不应该触发重新绘制
  */
 watch(bpmnXml, newValue => {
-  bpmnModeler.value
-    ?.saveXML({ format: true })
-    .then((saveXMLResult: SaveXMLResult) => {
-      if (newValue != saveXMLResult.xml) {
-        updateXmlIfDifferent(newValue);
-      }
-    })
-    .catch(() => {
-      updateXmlIfDifferent(newValue);
-    });
+  updateXmlOfModelerIfDifferent(newValue);
 });
 
 // 插入 XML
-const updateXmlIfDifferent = (newVal: string, success?: () => void) => {
+const updateXmlOfModeler = (newVal?: string, success?: () => void) => {
   if (newVal) {
     const bpmnModeler_ = bpmnModeler.value;
     if (bpmnModeler_) {
@@ -138,7 +146,7 @@ const updateXmlIfDifferent = (newVal: string, success?: () => void) => {
         .catch((err: { message: string }) => {
           emit('update:bpmn-xml', '');
           errorMessage.value = err.message || '打开图表失败';
-          console.error('updateXmlIfDifferent() >>> err =', err);
+          console.error('updateXmlOfModeler() >>> err =', err);
         });
     }
   } else {
@@ -321,7 +329,7 @@ useInit(
   emit,
   importXMLFile,
   emitXmlOfModeler,
-  updateXmlIfDifferent,
+  updateXmlOfModelerIfDifferent,
   canvasId,
   keyboardBindTo,
   dragFileRef,
