@@ -24,6 +24,8 @@ declare module 'vue' {
     AModal: typeof import('ant-design-vue/es')['Modal']
     ARow: typeof import('ant-design-vue/es')['Row']
     ATree: typeof import('ant-design-vue/es')['Tree']
+    BpmnModeler: typeof import('./components/flow/bpmn-modeler/bpmn-modeler.vue')['default']
+    BpmnViewer: typeof import('./components/flow/bpmn-viewer/bpmn-viewer.vue')['default']
     DirectoryList: typeof import('./components/directory-list/directory-list.vue')['default']
     FileDirectory: typeof import('./components/file-directory/file-directory.vue')['default']
     list: typeof import('./components/directory list/directory list.vue')['default']

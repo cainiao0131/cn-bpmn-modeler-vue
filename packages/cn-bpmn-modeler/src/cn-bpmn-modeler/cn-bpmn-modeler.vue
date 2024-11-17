@@ -268,7 +268,7 @@ const getProcessModelerApi = (): ProcessModelerApi => {
     },
     updatePropertiesOfSelected,
     updateRootProperty: (key: string, value: string) => {
-      const root: { id?: string; type?: string; name?: string } = bpmnRoot.value as {
+      const root: { id?: string; type?: string; name?: string } | undefined = bpmnRoot.value as {
         id?: string;
         type?: string;
         name?: string;
@@ -301,9 +301,7 @@ const getProcessModelerApi = (): ProcessModelerApi => {
           });
       });
     },
-    importXMLFile: (file: File) => {
-      importXMLFile(file);
-    },
+    importXMLFile,
   };
 };
 
