@@ -26,6 +26,7 @@ import { Moddle, SaveXMLResult } from 'bpmn-js/lib/BaseViewer';
 import { getInitialXml } from './util/util';
 import { ElementProperties, EmitType, FormValueType, Root } from './types';
 import { useInit } from './init';
+import { useUpdateXmlOfModeler } from './update-xml-of-modeler';
 
 const emit = defineEmits<EmitType>();
 
@@ -93,67 +94,6 @@ const canvasId = ref('_canvas_id');
 const bpmnModeler = ref<typeof BpmnModeler>();
 // 根节点
 const bpmnRoot = ref<Root>();
-
-/**
- * 更新 Xml，只有 Xml 有变化时才插入。
- * 因为插入会导致图像闪烁以及失去焦点，尽量避免不必要的插入。
- */
-const updateXmlOfModelerIfDifferent = (newValue: string, success?: () => void) => {
-  bpmnModeler.value
-    .saveXML({ format: true })
-    .then((saveXMLResult: SaveXMLResult) => {
-      if (newValue != saveXMLResult.xml) {
-        updateXmlOfModeler(newValue, success);
-      }
-    })
-    .catch(() => {
-      updateXmlOfModeler(newValue, success);
-    });
-};
-
-/**
- * 重新绘制图表会导致位移
- * 因此只希望外部设置新的值时重新绘制
- * 流程图内部自己改变了值时，图表已经绘制为新的图了，这种情况导致的 bpmnXml 变化不应该触发重新绘制
- */
-watch(bpmnXml, newValue => {
-  updateXmlOfModelerIfDifferent(newValue);
-});
-
-// 插入 XML
-const updateXmlOfModeler = (newVal?: string, success?: () => void) => {
-  if (newVal) {
-    const bpmnModeler_ = bpmnModeler.value;
-    if (bpmnModeler_) {
-      bpmnModeler_
-        .importXML(newVal)
-        .then(() => {
-          errorMessage.value = '';
-          // 如果不设置 setTimeout，无法设置成功，nextTick 也不行
-          setTimeout(() => {
-            // 如果配置了流程 ID 这重新设置一下 ID
-            if (processId.value) {
-              updateProperties(bpmnRoot.value, { id: processId.value, name: processName.value });
-            }
-            // 根据当前窗口居中
-            const canvas = bpmnModeler_.get('canvas') as { zoom: (a: string, b: string) => void };
-            canvas.zoom('fit-viewport', 'auto');
-          }, 1);
-          if (success) {
-            success();
-          }
-        })
-        .catch((err: { message: string }) => {
-          emit('update:bpmn-xml', '');
-          errorMessage.value = err.message || '打开图表失败';
-          console.error('updateXmlOfModeler() >>> err =', err);
-        });
-    }
-  } else {
-    // 不能用 bpmnModeler.value.clear()，因为 clear() 方法清除图表后，xml 仍然不是空
-    emit('update:bpmn-xml', '');
-  }
-};
 
 // 错误信息
 const errorMessage = ref('');
@@ -324,6 +264,25 @@ const getPropertiesToUpdate = (
 
   return cleanProperties;
 };
+
+const { updateXmlOfModelerIfDifferent } = useUpdateXmlOfModeler(
+  emit,
+  updateProperties,
+  bpmnModeler,
+  errorMessage,
+  processId,
+  bpmnRoot,
+  processName,
+);
+
+/**
+ * 重新绘制图表会导致位移
+ * 因此只希望外部设置新的值时重新绘制
+ * 流程图内部自己改变了值时，图表已经绘制为新的图了，这种情况导致的 bpmnXml 变化不应该触发重新绘制
+ */
+watch(bpmnXml, newValue => {
+  updateXmlOfModelerIfDifferent(newValue);
+});
 
 useInit(
   emit,
