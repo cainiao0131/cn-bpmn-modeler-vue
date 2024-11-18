@@ -39,9 +39,9 @@
           <a-row type="flex">
             <a-col flex="auto">
               <cn-bpmn-modeler
+                v-if="selectedProcess"
                 :height="`calc(100vh - ${cardHeight + 30}px)`"
-                :bpmn-xml="selectedBpmnXml"
-                @update:bpmn-xml="onUpdateBpmnXml"
+                v-model:bpmn-xml="selectedProcess.bpmnXml"
               />
             </a-col>
           </a-row>
@@ -94,7 +94,7 @@ const previewDiagram = () => {
 };
 // 复制预览
 const copyPreview = () => {
-  copyText(selectedBpmnXml.value).then(() => {
+  copyText(selectedProcess.value?.bpmnXml ?? '').then(() => {
     message.success('已复制到剪切板');
   });
 };
@@ -107,23 +107,8 @@ const selectedProcess = computed<DataNode | null>(() => {
   }
   return processStore.processNodeMap[selectedKey];
 });
-// 选中流程对应的 XML
-const selectedBpmnXml = computed<string>(() => {
-  const newSelectedProcess = selectedProcess.value;
-  if (!newSelectedProcess) {
-    return '';
-  }
-  return newSelectedProcess.bpmnXml || '';
-});
-const selectedKeys = ref<Array<string>>([]);
 
-const onUpdateBpmnXml = (xml: string) => {
-  const newSelectedProcess = selectedProcess.value;
-  if (!newSelectedProcess) {
-    return;
-  }
-  newSelectedProcess.bpmnXml = xml;
-};
+const selectedKeys = ref<Array<string>>([]);
 
 const isEdit = ref(false);
 const diagramTitle = computed(() => {
