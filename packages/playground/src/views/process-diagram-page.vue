@@ -31,8 +31,19 @@
             <a-collapse-panel key="selectedIds" header="selected ids">
               <p>{{ selectedIds }}</p>
             </a-collapse-panel>
+            <a-collapse-panel key="elementContainer" header="elementContainer">
+              <p>{{ elementContainer }}</p>
+            </a-collapse-panel>
             <a-collapse-panel key="bpmnXml" header="BPMN XML">
-              <p>{{ selectedProcess.bpmnXml }}</p>
+              <codemirror
+                v-if="selectedProcess.bpmnXml"
+                :model-value="selectedProcess.bpmnXml"
+                disabled
+                :autofocus="true"
+                :indent-with-tab="true"
+                :tab-size="2"
+                :extensions="extensions"
+              />
             </a-collapse-panel>
           </a-collapse>
         </a-card>
@@ -46,8 +57,13 @@ import { message } from 'ant-design-vue';
 import { copyText } from '@/utils/domUtils';
 import { CN } from '@/utils';
 import { ElementProperties } from 'cn-bpmn-modeler-vue';
+import { Codemirror } from 'vue-codemirror';
+import { oneDark } from '@codemirror/theme-one-dark';
+import { java } from '@codemirror/lang-java';
 
-const activeKeys = ref(['selectedIds']);
+const extensions = [java(), oneDark];
+
+const activeKeys = ref(['selectedIds', 'elementContainer', 'bpmnXml']);
 
 // 选中的流程
 const selectedProcess = ref<{ bpmnXml: string }>({ bpmnXml: '' });

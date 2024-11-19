@@ -34,7 +34,7 @@ export type InternalEvent = {
 export type ElementProperties = {
   id?: string;
   type?: string;
-  children?: Array<unknown>;
+  children?: Array<ElementProperties>;
   name?: string;
   assignee?: string; // 用户任务的委托人
   formKey?: string;

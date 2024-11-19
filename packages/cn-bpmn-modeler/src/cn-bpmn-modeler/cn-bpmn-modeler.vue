@@ -27,7 +27,6 @@ import { getInitialXml } from './util/util';
 import { DIRECT_KEYS, ElementProperties, EmitType, NAMESPACE } from './types';
 import { useInit } from './init';
 import { useUpdateXmlOfModeler } from './update-xml-of-modeler';
-import { cnTranslator } from './util/locale';
 
 const emit = defineEmits<EmitType>();
 
@@ -107,7 +106,19 @@ const {
   processName,
   userTaskCreateEventListenerExpression,
   userTaskCompleteEventListenerExpression,
+  elementContainer,
 } = toRefs(props);
+
+/**
+ * 内部 internalElementContainer 是为了避免 v-model 的问题
+ * 详见：https://test-cprjkirb9nbd.feishu.cn/docx/YEnrdEbrtosu9Mx6I3DcLXoEnmc
+ */
+const internalElementContainer = ref<Record<string, ElementProperties>>({});
+watch(internalElementContainer, newValue => {
+  emit('update:element-container', toRaw(newValue));
+});
+// TODO 对 elementContainer 的每个属性进行 watch 后，通过 API 修改 modeler，以提高新能
+// TODO 待验证：通过 API 修改 modeler 后是否会触发 modeler 事件，如果会，如何高效的避免没必要的 internalElementContainer 更新
 
 const canvasId = ref('_canvas_id');
 
@@ -281,6 +292,7 @@ useInit(
   importXMLFile,
   emitXmlOfModeler,
   updateXmlOfModelerIfDifferent,
+  elementContainer,
   canvasId,
   keyboardBindTo,
   dragFileRef,
@@ -288,7 +300,7 @@ useInit(
   locale,
   bpmnModeler,
   bpmnRoot,
-  selectedElement,
+  internalElementContainer,
   errorMessage,
   options,
   additionalModules,

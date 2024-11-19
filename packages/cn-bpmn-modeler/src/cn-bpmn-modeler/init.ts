@@ -11,6 +11,7 @@ export function useInit(
   importXMLFile: (file: File) => void,
   emitXmlOfModeler: () => void,
   updateXmlOfModelerIfDifferent: (newValue: string, success?: () => void) => void,
+  elementContainer: Ref<Record<string, ElementProperties>>,
   canvasId: Ref<string>,
   keyboardBindTo: Ref<unknown>,
   dragFileRef: Ref<HTMLElement | undefined>,
@@ -18,7 +19,7 @@ export function useInit(
   locale: Ref<Record<string, string> | undefined> | undefined,
   bpmnModeler: Ref<typeof BpmnModeler | undefined>,
   bpmnRoot: Ref<ElementProperties | undefined>,
-  selectedElement: Ref<BpmnElement | undefined>,
+  internalElementContainer: Ref<Record<string, ElementProperties>>,
   errorMessage: Ref<string>,
   options: Ref<Record<string, unknown>>,
   additionalModules: Ref<Array<unknown>>,
@@ -63,7 +64,6 @@ export function useInit(
         ),
       );
       bpmnModeler.value = rawModeler;
-      emit('modeler-ready', rawModeler);
 
       // 检查浏览器的文件 API 是否可用
       if (!window.FileList || !window.FileReader) {
@@ -107,26 +107,37 @@ export function useInit(
       rawModeler.on('commandStack.changed', debounce(emitXmlOfModeler, 500));
       // 添加根节点事件
       rawModeler.on('root.added', (internalEvent: InternalEvent) => {
-        bpmnRoot.value = internalEvent.element;
+        const bpmnRoot_ = internalEvent.element;
+        bpmnRoot.value = bpmnRoot_;
         emit('root-added', internalEvent);
+        nextTick(() => {
+          // 需要在 nextTick 中计算，否则 root 对象的 children 子对象无法被获取到
+          internalElementContainer.value = buildElementContainerByRoot(bpmnRoot_);
+        });
       });
       // 选择元素改变事件
       rawModeler.on('selection.changed', (internalEvent: InternalEvent) => {
+        let selectedIds_: Array<string> = [];
         const newSelection = internalEvent.newSelection;
-        const element = !newSelection || newSelection.length < 1 ? undefined : (newSelection[0] as BpmnElement);
-        selectedElement.value = element;
-        emitPropertiesOfElement(element);
+        if (newSelection && newSelection.length > 0) {
+          selectedIds_ = newSelection.map(el => {
+            const el_ = el as { id?: string };
+            return el_?.id || '';
+          });
+        }
+        emit('update:selected-ids', selectedIds_);
       });
       // 元素属性变化事件
       // TODO 待验证：外部通过 API 更新 modeler 时，会触发这个事件吗？
       rawModeler.on('element.changed', (internalEvent: InternalEvent) => {
-        /**
-         * 元素改变时，改变的元素不一定是选中的元素
-         * 因为无论选中什么元素，都能编辑流程根节点的属性，改变根节点的属性时，触发这个事件，对象为根节点，而不是选中的节点
-         * 这时不应该更新选中元素的属性
-         */
-        if (toRaw(selectedElement.value) == internalEvent.element) {
-          emitPropertiesOfElement(internalEvent.element);
+        const el_ = internalEvent.element;
+        if (el_) {
+          const id = el_.id;
+          if (id) {
+            const new_ = { ...toRaw(internalElementContainer.value) };
+            new_[id] = getPropertiesOfElement(el_);
+            internalElementContainer.value = new_;
+          }
         }
       });
 
@@ -136,92 +147,100 @@ export function useInit(
        */
       updateXmlOfModelerIfDifferent(bpmnXml.value);
 
+      emit('modeler-ready', rawModeler);
       // 打印所有事件 console.log(bpmnModeler.value.get('eventBus'));
     });
   };
 
-  /**
-   * 解析 BPMN 元素对象，得到并弹出用于对外的元素属性对象
-   * 改选了元素，或模型编辑器改变了选中元素的属性时调用
-   *
-   * @param element 选中的元素
-   */
-  const emitPropertiesOfElement = (element?: ElementProperties) => {
-    if (!element) {
-      // 未选中元素，视为选中根节点流程对象
-      const root: ElementProperties | undefined = bpmnRoot.value;
-      emit('update:selected-properties', {
-        id: root?.id ?? '',
-        type: root?.type ?? '',
-        name: root?.name ?? '',
-      });
-    } else {
-      const businessObject: BpmnBusiness | undefined = element.businessObject as BpmnBusiness;
-      if (businessObject) {
-        const attrs_: Record<string, string> | undefined = businessObject.$attrs as Record<string, string>;
+  const buildElementContainerByRoot = (root?: ElementProperties): Record<string, ElementProperties> => {
+    if (!root) {
+      return {};
+    }
+    const elementContainer_: Record<string, ElementProperties> = {
+      [root.id as string]: getPropertiesOfElement(root),
+    };
+    setElements(elementContainer_, root.children);
+    return elementContainer_;
+  };
 
-        const conditionExpression = businessObject.conditionExpression;
-        const loopCharacteristics = businessObject.loopCharacteristics;
-        // 是否为多实例
-        const multiInstance = !!loopCharacteristics;
+  const setElements = (elementContainer_: Record<string, ElementProperties>, elements?: Array<ElementProperties>) => {
+    if (!elements) {
+      return;
+    }
+    elements.forEach(el_ => {
+      elementContainer_[el_.id as string] = getPropertiesOfElement(el_);
+      setElements(elementContainer_, el_.children);
+    });
+  };
 
-        let createTaskEvent = false;
-        let completeTaskEvent = false;
-        const extensionElements = businessObject.extensionElements;
-        if (extensionElements) {
-          const values = extensionElements.values;
-          if (values && values.length > 0) {
-            const events = values.map(value => value.event ?? '').filter(event => !!event);
-            createTaskEvent = events.includes('create');
-            completeTaskEvent = events.includes('complete');
-          }
-        }
+  const getPropertiesOfElement = (element: ElementProperties): ElementProperties => {
+    const businessObject: BpmnBusiness | undefined = element.businessObject as BpmnBusiness;
+    if (!businessObject) {
+      return {};
+    }
 
-        const properties_: Record<string, unknown> = attrs_
-          ? Object.keys(attrs_).reduce(
-              (newPros, key) => {
-                if (key.startsWith(NAMESPACE)) {
-                  const rawKey = key.substring(NAMESPACE.length);
-                  const rawValue = attrs_[key];
-                  if (ARRAY_KEYS.includes(rawKey)) {
-                    newPros[rawKey] = toArray(rawValue);
-                  } else {
-                    newPros[rawKey] = rawValue;
-                  }
-                }
-                return newPros;
-              },
-              {} as Record<string, unknown>,
-            )
-          : {};
+    const attrs_: Record<string, string> | undefined = businessObject.$attrs as Record<string, string>;
 
-        emit('update:selected-properties', {
-          ...properties_,
-          id: businessObject.id,
-          name: businessObject.name ?? '',
-          async: businessObject.async || undefined,
-          formKey: businessObject.formKey ? String(businessObject.formKey) : undefined,
-          sourceType: businessObject.sourceRef?.$type ?? '',
-          priority: businessObject.priority || undefined,
-          dueDate: businessObject.dueDate || undefined,
-          executionListener: businessObject.executionListener || undefined,
-          taskListener: businessObject.taskListener || undefined,
-          class: businessObject.class || undefined,
-          delegateExpression: businessObject.delegateExpression || undefined,
-          expression: businessObject.expression || undefined,
-          conditionExpression: conditionExpression?.body ? String(conditionExpression.body) : undefined,
-          type: element.type,
-          asyncType: toStringArray(getAttribute('asyncType', attrs_)),
-          assignee: multiInstance ? getAttribute('assignees', attrs_) : getAttribute('assignee', attrs_),
-          completionConditionCount: Number(getAttribute('completionConditionCount', attrs_) ?? 0),
-          // 多实例是否并行
-          isSequential: !!loopCharacteristics?.isSequential,
-          multiInstance,
-          createTaskEvent,
-          completeTaskEvent,
-        });
+    const conditionExpression = businessObject.conditionExpression;
+    const loopCharacteristics = businessObject.loopCharacteristics;
+    // 是否为多实例
+    const multiInstance = !!loopCharacteristics;
+
+    let createTaskEvent = false;
+    let completeTaskEvent = false;
+    const extensionElements = businessObject.extensionElements;
+    if (extensionElements) {
+      const values = extensionElements.values;
+      if (values && values.length > 0) {
+        const events = values.map(value => value.event ?? '').filter(event => !!event);
+        createTaskEvent = events.includes('create');
+        completeTaskEvent = events.includes('complete');
       }
     }
+
+    const properties_: Record<string, unknown> = attrs_
+      ? Object.keys(attrs_).reduce(
+          (newPros, key) => {
+            if (key.startsWith(NAMESPACE)) {
+              const rawKey = key.substring(NAMESPACE.length);
+              const rawValue = attrs_[key];
+              if (ARRAY_KEYS.includes(rawKey)) {
+                newPros[rawKey] = toArray(rawValue);
+              } else {
+                newPros[rawKey] = rawValue;
+              }
+            }
+            return newPros;
+          },
+          {} as Record<string, unknown>,
+        )
+      : {};
+
+    return {
+      ...properties_,
+      id: businessObject.id,
+      name: businessObject.name ?? '',
+      async: businessObject.async || undefined,
+      formKey: businessObject.formKey ? String(businessObject.formKey) : undefined,
+      sourceType: businessObject.sourceRef?.$type ?? '',
+      priority: businessObject.priority || undefined,
+      dueDate: businessObject.dueDate || undefined,
+      executionListener: businessObject.executionListener || undefined,
+      taskListener: businessObject.taskListener || undefined,
+      class: businessObject.class || undefined,
+      delegateExpression: businessObject.delegateExpression || undefined,
+      expression: businessObject.expression || undefined,
+      conditionExpression: conditionExpression?.body ? String(conditionExpression.body) : undefined,
+      type: element.type,
+      asyncType: toStringArray(getAttribute('asyncType', attrs_)),
+      assignee: multiInstance ? getAttribute('assignees', attrs_) : getAttribute('assignee', attrs_),
+      completionConditionCount: Number(getAttribute('completionConditionCount', attrs_) ?? 0),
+      // 多实例是否并行
+      isSequential: !!loopCharacteristics?.isSequential,
+      multiInstance,
+      createTaskEvent,
+      completeTaskEvent,
+    };
   };
   return {};
 }
