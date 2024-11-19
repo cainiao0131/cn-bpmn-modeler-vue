@@ -4,6 +4,7 @@ import { onMounted, toRaw } from 'vue';
 import { flowableExtensions } from './moddle-extensions/flowable';
 import flowableControlsModule from './additional-modules/flowable';
 import { ARRAY_KEYS, BpmnBusiness, BpmnElement, EmitType, InternalEvent, NAMESPACE, ElementProperties } from './types';
+import { cnTranslator } from './util/locale';
 
 export function useInit(
   emit: EmitType,
@@ -14,7 +15,7 @@ export function useInit(
   keyboardBindTo: Ref<unknown>,
   dragFileRef: Ref<HTMLElement | undefined>,
   bpmnXml: Ref<string>,
-  translator: Ref<(english: string, replacements: Record<string, string>) => string>,
+  locale: Ref<Record<string, string> | undefined> | undefined,
   bpmnModeler: Ref<typeof BpmnModeler | undefined>,
   bpmnRoot: Ref<ElementProperties | undefined>,
   selectedElement: Ref<BpmnElement | undefined>,
@@ -51,7 +52,8 @@ export function useInit(
         translate: [
           'value',
           (english: string, replacements: Record<string, string>) => {
-            return translator.value(english, replacements) || english;
+            const locale_ = locale?.value;
+            return locale_ ? cnTranslator(english, replacements, locale_) : english;
           },
         ],
       });

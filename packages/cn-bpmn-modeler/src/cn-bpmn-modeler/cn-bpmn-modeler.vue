@@ -27,6 +27,7 @@ import { getInitialXml } from './util/util';
 import { DIRECT_KEYS, ElementProperties, EmitType, NAMESPACE } from './types';
 import { useInit } from './init';
 import { useUpdateXmlOfModeler } from './update-xml-of-modeler';
+import { cnTranslator } from './util/locale';
 
 const emit = defineEmits<EmitType>();
 
@@ -34,6 +35,12 @@ const props = defineProps({
   selectedIds: {
     type: Array as PropType<Array<string>>,
     default: () => [],
+  },
+  elementContainer: {
+    type: Object as PropType<Record<string, ElementProperties>>,
+    default: () => {
+      return {};
+    },
   },
   height: {
     type: [String, Number],
@@ -43,10 +50,10 @@ const props = defineProps({
     type: String,
     default: '',
   },
-  translator: {
-    type: Function as PropType<(english: string, replacements: Record<string, string>) => string>,
+  locale: {
+    type: Object as PropType<Record<string, string>>,
     default: () => {
-      return () => undefined;
+      return undefined;
     },
   },
   keyboardBindTo: {
@@ -95,7 +102,7 @@ const {
   additionalModules,
   keyboardBindTo,
   options,
-  translator,
+  locale,
   processId,
   processName,
   userTaskCreateEventListenerExpression,
@@ -278,7 +285,7 @@ useInit(
   keyboardBindTo,
   dragFileRef,
   bpmnXml,
-  translator,
+  locale,
   bpmnModeler,
   bpmnRoot,
   selectedElement,

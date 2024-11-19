@@ -13,6 +13,7 @@ export const NAMESPACE = 'flowable:';
 
 export type EmitType = {
   (eventName: 'update:bpmn-xml', message: string): void;
+  (eventName: 'update:element-container', elementContainer: Record<string, ElementProperties>): void;
   (eventName: 'update:selected-ids', selectedIds: Array<string>): void;
   (eventName: 'root-added', message: InternalEvent): void;
   (eventName: 'api-ready', message: ProcessModelerApi): void;
