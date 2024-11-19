@@ -134,9 +134,7 @@ export function useInit(
         if (el_) {
           const id = el_.id;
           if (id) {
-            const new_ = { ...toRaw(internalElementContainer.value) };
-            new_[id] = getPropertiesOfElement(el_);
-            internalElementContainer.value = new_;
+            internalElementContainer.value[id] = getPropertiesOfElement(el_);
           }
         }
       });
