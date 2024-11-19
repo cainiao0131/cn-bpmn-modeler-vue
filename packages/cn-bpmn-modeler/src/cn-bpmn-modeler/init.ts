@@ -32,16 +32,6 @@ export function useInit(
     const canvasId_ = `_${guid()}`;
     canvasId.value = canvasId_;
     nextTick(() => {
-      /**
-         {
-            translate: [
-              'value',
-              (english: string, replacements: Record<string, string>) => {
-                return translator.value(english, replacements) || english;
-              },
-            ],
-          },
-        */
       const newAdditionalModules: Array<unknown> = [];
       const rawAdditionalModules = toRaw(additionalModules.value);
       rawAdditionalModules.forEach(additionalModule => {
