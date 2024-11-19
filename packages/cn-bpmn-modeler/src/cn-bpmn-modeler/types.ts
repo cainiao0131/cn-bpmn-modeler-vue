@@ -13,22 +13,17 @@ export const NAMESPACE = 'flowable:';
 
 export type EmitType = {
   (eventName: 'update:bpmn-xml', message: string): void;
+  (eventName: 'update:selected-ids', selectedIds: Array<string>): void;
   (eventName: 'root-added', message: InternalEvent): void;
   (eventName: 'api-ready', message: ProcessModelerApi): void;
   (eventName: 'modeler-ready', message: typeof BpmnModeler): void;
   (eventName: 'update:selected-properties', message: ElementProperties): void;
 };
 
-export type Root = {
-  id: string;
-  type: string;
-  children: Array<unknown>;
-};
-
 export type InternalEvent = {
   type?: string;
   trigger?: string;
-  element?: Root;
+  element?: ElementProperties;
   gfx?: unknown;
   originalEvent?: unknown;
   newSelection: Array<unknown>;
@@ -38,6 +33,7 @@ export type InternalEvent = {
 export type ElementProperties = {
   id?: string;
   type?: string;
+  children?: Array<unknown>;
   name?: string;
   assignee?: string; // 用户任务的委托人
   formKey?: string;

@@ -1,4 +1,4 @@
-import { NAMESPACE } from '../types';
+import { NAMESPACE } from '../cn-bpmn-modeler/types';
 
 export const guid = () => {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {

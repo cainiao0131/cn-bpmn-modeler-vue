@@ -42,6 +42,7 @@
                 v-if="selectedProcess"
                 :height="`calc(100vh - ${cardHeight + 30}px)`"
                 v-model:bpmn-xml="selectedProcess.bpmnXml"
+                v-model:selected-ids="selectedIds"
               />
             </a-col>
           </a-row>
@@ -82,6 +83,7 @@ import { copyText } from '@/utils/domUtils';
 const processStore = useProcessStore();
 
 const cardHeight = ref(152);
+const selectedIds = ref<Array<string>>([]);
 
 const onUpdateTreeData = (nodes: Array<DataNode>) => {
   processStore.setProcessNodes(nodes);

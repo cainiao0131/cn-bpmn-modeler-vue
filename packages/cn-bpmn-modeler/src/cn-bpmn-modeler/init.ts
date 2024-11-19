@@ -3,7 +3,7 @@ import { debounce, getAttribute, guid, toArray, toStringArray } from './util/uti
 import { onMounted, toRaw } from 'vue';
 import { flowableExtensions } from './moddle-extensions/flowable';
 import flowableControlsModule from './additional-modules/flowable';
-import { ARRAY_KEYS, BpmnBusiness, BpmnElement, EmitType, InternalEvent, NAMESPACE, Root } from './types';
+import { ARRAY_KEYS, BpmnBusiness, BpmnElement, EmitType, InternalEvent, NAMESPACE, ElementProperties } from './types';
 
 export function useInit(
   emit: EmitType,
@@ -16,7 +16,7 @@ export function useInit(
   bpmnXml: Ref<string>,
   translator: Ref<(english: string, replacements: Record<string, string>) => string>,
   bpmnModeler: Ref<typeof BpmnModeler | undefined>,
-  bpmnRoot: Ref<Root | undefined>,
+  bpmnRoot: Ref<ElementProperties | undefined>,
   selectedElement: Ref<BpmnElement | undefined>,
   errorMessage: Ref<string>,
   options: Ref<Record<string, unknown>>,
@@ -154,14 +154,10 @@ export function useInit(
    *
    * @param element 选中的元素
    */
-  const emitPropertiesOfElement = (element?: BpmnElement) => {
+  const emitPropertiesOfElement = (element?: ElementProperties) => {
     if (!element) {
       // 未选中元素，视为选中根节点流程对象
-      const root: { id?: string; type?: string; name?: string } = bpmnRoot.value as {
-        id?: string;
-        type?: string;
-        name?: string;
-      };
+      const root: ElementProperties | undefined = bpmnRoot.value;
       emit('update:selected-properties', {
         id: root?.id ?? '',
         type: root?.type ?? '',

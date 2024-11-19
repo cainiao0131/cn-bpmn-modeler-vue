@@ -24,13 +24,17 @@
 import BpmnModeler from 'bpmn-js/lib/Modeler';
 import { Moddle, SaveXMLResult } from 'bpmn-js/lib/BaseViewer';
 import { getInitialXml } from './util/util';
-import { DIRECT_KEYS, ElementProperties, EmitType, FormValueType, NAMESPACE, Root } from './types';
+import { DIRECT_KEYS, ElementProperties, EmitType, NAMESPACE } from './types';
 import { useInit } from './init';
 import { useUpdateXmlOfModeler } from './update-xml-of-modeler';
 
 const emit = defineEmits<EmitType>();
 
 const props = defineProps({
+  selectedIds: {
+    type: Array as PropType<Array<string>>,
+    default: () => [],
+  },
   height: {
     type: [String, Number],
     default: '100%',
@@ -103,7 +107,7 @@ const canvasId = ref('_canvas_id');
 // modeler 实例
 const bpmnModeler = ref<typeof BpmnModeler>();
 // 根节点
-const bpmnRoot = ref<Root>();
+const bpmnRoot = ref<ElementProperties>();
 
 // 错误信息
 const errorMessage = ref('');
@@ -138,7 +142,7 @@ const emitXmlOfModeler = () => {
     });
 };
 
-const updateProperties = (element?: { type: string; id: string }, properties?: ElementProperties) => {
+const updateProperties = (element?: ElementProperties, properties?: ElementProperties) => {
   if (!properties || !bpmnModeler.value) {
     return;
   }
@@ -171,10 +175,7 @@ const bpmnModdle = computed((): Moddle => {
  * @param properties 新的属性
  * @param element 待更新的元素
  */
-const getPropertiesToUpdate = (
-  properties: ElementProperties,
-  element?: { type: string; id: string },
-): ElementProperties => {
+const getPropertiesToUpdate = (properties: ElementProperties, element?: ElementProperties): ElementProperties => {
   const cleanProperties: ElementProperties = {};
   for (const key in properties) {
     if (DIRECT_KEYS.includes(key)) {
