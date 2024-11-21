@@ -1,4 +1,4 @@
-import { NAMESPACE } from '../types';
+import { ElementProperties, NAMESPACE } from '../types';
 
 export const guid = () => {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
@@ -6,6 +6,42 @@ export const guid = () => {
       v = c == 'x' ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
+};
+
+export const isElementPropertiesEqual = (
+  elementProperties1: ElementProperties,
+  elementProperties2: ElementProperties,
+): boolean => {
+  const keys1 = Object.keys(elementProperties1);
+  const keys2 = Object.keys(elementProperties2);
+  if (keys1.length !== keys2.length) {
+    return false;
+  }
+  for (const key of keys1) {
+    if (elementProperties1[key] != elementProperties2[key]) {
+      return false;
+    }
+  }
+  return true;
+};
+export const isElementContainerEqual = (
+  record1?: Record<string, ElementProperties>,
+  record2?: Record<string, ElementProperties>,
+): boolean => {
+  if (!record1 || !record2) {
+    return !record1 && !record2;
+  }
+  const keys1 = Object.keys(record1);
+  const keys2 = Object.keys(record2);
+  if (keys1.length !== keys2.length) {
+    return false;
+  }
+  for (const key of keys1) {
+    if (!isElementPropertiesEqual(record1[key], record2[key])) {
+      return false;
+    }
+  }
+  return true;
 };
 
 // 防抖

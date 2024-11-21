@@ -11,7 +11,6 @@ export function useInit(
   importXMLFile: (file: File) => void,
   emitXmlOfModeler: () => void,
   updateXmlOfModelerIfDifferent: (newValue: string, success?: () => void) => void,
-  elementContainer: Ref<Record<string, ElementProperties>>,
   canvasId: Ref<string>,
   keyboardBindTo: Ref<unknown>,
   dragFileRef: Ref<HTMLElement | undefined>,

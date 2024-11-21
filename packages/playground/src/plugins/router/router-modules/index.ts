@@ -1,24 +1,26 @@
 import type { RouteRecordRaw } from 'vue-router';
 
+export const menus: Array<RouteRecordRaw> = [
+  {
+    path: 'process-diagram',
+    name: 'processDiagram',
+    meta: { title: '流程图' },
+    component: () => import('@/views/process-diagram-page.vue'),
+  },
+  {
+    path: 'vue-test',
+    name: 'vueTest',
+    meta: { title: 'Vue 组件测试' },
+    component: () => import('@/views/vue-test/vue-test-page.vue'),
+  },
+];
+
 export const routerModules: Array<RouteRecordRaw> = [
   {
     path: '/',
     name: 'index',
     component: () => import('@/layouts/layout.vue'),
     redirect: '/process-diagram',
-    children: [
-      {
-        path: 'process-diagram',
-        name: 'process-diagram',
-        meta: { title: '流程图' },
-        component: () => import('@/views/process-diagram-page.vue'),
-      },
-      {
-        path: 'bpmn-js-test',
-        name: 'bpmn-js-test',
-        meta: { title: 'bpmn.js' },
-        component: () => import('@/views/bpmn-js-test.vue'),
-      },
-    ],
+    children: menus,
   },
 ];

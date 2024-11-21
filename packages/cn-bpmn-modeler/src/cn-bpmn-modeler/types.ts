@@ -129,10 +129,6 @@ export type ProcessModelerApi = {
    */
   importXMLFile: (file: File) => void;
   /**
-   * 更新元素属性
-   */
-  updatePropertiesOfSelected: (properties?: ElementProperties) => void;
-  /**
    * 更新根元素属性
    */
   updateRootProperty: (key: string, value: string) => void;

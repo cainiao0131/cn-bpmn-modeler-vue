@@ -23,7 +23,7 @@
 <script lang="ts" setup>
 import BpmnModeler from 'bpmn-js/lib/Modeler';
 import { Moddle, SaveXMLResult } from 'bpmn-js/lib/BaseViewer';
-import { getInitialXml } from './util/util';
+import { getInitialXml, guid, isElementContainerEqual } from './util/util';
 import { DIRECT_KEYS, ElementProperties, EmitType, NAMESPACE } from './types';
 import { useInit } from './init';
 import { useUpdateXmlOfModeler } from './update-xml-of-modeler';
@@ -109,16 +109,68 @@ const {
   elementContainer,
 } = toRefs(props);
 
+setTimeout(() => {
+  // TODO 测试 v-model 用
+  doTest1();
+}, 1000);
+
+const test = ref({ id: 'test 0' });
+
+const doTest1 = () => {
+  console.log(JSON.stringify(toRaw(test.value)));
+  test.value = { id: 'test 1' };
+  console.log(JSON.stringify(toRaw(test.value)));
+  test.value.id = 'test 2';
+  console.log(JSON.stringify(toRaw(test.value)));
+};
+
+const set: Set<Record<string, ElementProperties>> = new Set();
+
 /**
  * 内部 internalElementContainer 是为了避免 v-model 的问题
  * 详见：https://test-cprjkirb9nbd.feishu.cn/docx/YEnrdEbrtosu9Mx6I3DcLXoEnmc
+ *
+ * 每次都弹出新的对象，避免内部局部修改 internalElementContainer 的属性时
+ * 修改被过早地被外部看见，而破坏数据流
+ * 由于弹出的新对象与 toRaw(internalElementContainer) 不是同一个对象
+ * 因此内部对 internalElementContainer.value[key] = ... 的局部修改，在 emit 前不会被组件外部感知到
  */
 const internalElementContainer = ref<Record<string, ElementProperties>>({});
-watch(internalElementContainer, newValue => {
-  emit('update:element-container', toRaw(newValue));
+watch(
+  internalElementContainer,
+  newValue => {
+    const newElementContainer: Record<string, ElementProperties> = {};
+    for (const [key, value] of Object.entries(toRaw(newValue))) {
+      if (value != undefined) {
+        newElementContainer[key] = value;
+      }
+    }
+    set.add(newElementContainer);
+    emit('update:element-container', newElementContainer);
+  },
+  { deep: true },
+);
+
+/**
+ * 这里的 watch 不加 deep
+ * 强迫使用 <cn-bpmn-modeler> 组件的用户必须通过为 elementContainer 赋值来回填数据
+ * 不允许局部设置 elementContainer 的属性，以避免数据流混乱
+ * 这样就能通过 toRaw(newValue) == toRaw(internalElementContainer.value) 判断
+ * 如果相等，说明是内部变化造成的 elementContainer 变化，此时不用调 API 更新 modeler，避免死循环
+ *
+ * 只更新发生了变化的节点与属性，一方面提升性能，另一方面作为避免死循环的兜底
+ * 因为依赖其它机制来避免更新死循环不一定生效
+ */
+watch(elementContainer, (newValue, oldValue) => {
+  const newRawValue = toRaw(newValue);
+  if (set.has(newRawValue)) {
+    set.delete(newRawValue);
+    console.log('is internal update');
+  } else if (!isElementContainerEqual(toRaw(oldValue), newRawValue)) {
+    // TODO 根据变化调用 API 更新 modeler
+    console.log('not equal');
+  }
 });
-// TODO 对 elementContainer 的每个属性进行 watch 后，通过 API 修改 modeler，以提高新能
-// TODO 待验证：通过 API 修改 modeler 后是否会触发 modeler 事件，如果会，如何高效的避免没必要的 internalElementContainer 更新
 
 const canvasId = ref('_canvas_id');
 
@@ -131,8 +183,6 @@ const bpmnRoot = ref<ElementProperties>();
 const errorMessage = ref('');
 
 const dragFileRef = ref<HTMLElement>();
-// 选中的元素
-const selectedElement = ref();
 
 const specialKeys = ['conditionExpression', 'multiInstance', 'isSequential', 'createTaskEvent', 'completeTaskEvent'];
 
@@ -176,9 +226,6 @@ const updateProperties = (element?: ElementProperties, properties?: ElementPrope
    * 没有选中元素，更新根节点属性
    */
   modeling.updateProperties(toRaw(element ?? bpmnRoot.value), getPropertiesToUpdate(properties, element));
-};
-const updatePropertiesOfSelected = (properties?: ElementProperties) => {
-  updateProperties(selectedElement.value, properties);
 };
 
 export type BpmnModdle = { create: () => string | undefined };
@@ -292,7 +339,6 @@ useInit(
   importXMLFile,
   emitXmlOfModeler,
   updateXmlOfModelerIfDifferent,
-  elementContainer,
   canvasId,
   keyboardBindTo,
   dragFileRef,
@@ -317,7 +363,6 @@ defineExpose({
   newProcess: () => {
     emit('update:bpmn-xml', getInitialXml());
   },
-  updatePropertiesOfSelected,
   updateRootProperty: (key: string, value: string) => {
     const root: { id?: string; type?: string; name?: string } | undefined = bpmnRoot.value as {
       id?: string;

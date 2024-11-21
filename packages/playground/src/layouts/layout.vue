@@ -3,11 +3,8 @@
     <a-layout-sider v-model="collapsed" collapsible>
       <div class="logo" />
       <a-menu :selected-keys="selectedKeys" theme="dark" mode="inline" @click="handleClick">
-        <a-menu-item key="process-diagram">
-          <span>流程图</span>
-        </a-menu-item>
-        <a-menu-item key="bpmn-js-test">
-          <span>bpmn.js</span>
+        <a-menu-item v-for="menu in menus" :key="menu.name">
+          <span>{{ menu.meta?.title ?? '' }}</span>
         </a-menu-item>
       </a-menu>
     </a-layout-sider>
@@ -18,7 +15,9 @@
 </template>
 
 <script setup lang="ts">
+import { MenuInfo } from 'ant-design-vue/es/menu/src/interface';
 import { useRoute, useRouter } from 'vue-router';
+import { menus } from '../plugins/router/router-modules';
 
 const route = useRoute();
 const router = useRouter();
@@ -28,8 +27,8 @@ const selectedKeys = computed(() => {
 });
 const collapsed = ref(false);
 
-const handleClick = (data: { key: string }) => {
-  router.push({ name: data.key });
+const handleClick = (data: MenuInfo) => {
+  router.push({ name: data.key as string });
 };
 </script>
 
