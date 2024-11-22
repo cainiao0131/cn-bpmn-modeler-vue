@@ -13,6 +13,12 @@ export const menus: Array<RouteRecordRaw> = [
     meta: { title: 'Vue 组件测试' },
     component: () => import('@/views/vue-test/vue-test-page.vue'),
   },
+  {
+    path: 'bpmn-js-test',
+    name: 'bpmnJsTest',
+    meta: { title: 'bpmn.js 组件封装测试' },
+    component: () => import('@/views/bpmn-js-test/bpmn-js-test-page.vue'),
+  },
 ];
 
 export const routerModules: Array<RouteRecordRaw> = [
