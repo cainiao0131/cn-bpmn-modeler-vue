@@ -23,10 +23,11 @@
 <script lang="ts" setup>
 import BpmnModeler from 'bpmn-js/lib/Modeler';
 import { SaveXMLResult } from 'bpmn-js/lib/BaseViewer';
+import { CN } from '@/utils';
 import { flowableExtensions } from '../../../../cn-bpmn-modeler/src/cn-bpmn-modeler/moddle-extensions/flowable';
 import flowableControlsModule from '../../../../cn-bpmn-modeler/src/cn-bpmn-modeler/additional-modules/flowable';
 import { cnTranslator } from '../../../../cn-bpmn-modeler/src/cn-bpmn-modeler/util/locale';
-import { CN } from '@/utils';
+import { ElementProperties, InternalEvent } from '../../../../cn-bpmn-modeler/src/cn-bpmn-modeler/types';
 
 const emit = defineEmits<{
   (eventName: 'update:bpmn-xml', message: string): void;
@@ -43,6 +44,39 @@ const { bpmnXml } = toRefs(props);
 // modeler 实例
 const bpmnModeler = ref<typeof BpmnModeler>();
 const dragFileRef = ref<HTMLElement>();
+// 根节点
+const bpmnRoot = ref<ElementProperties>();
+
+const updateProperties = (element?: ElementProperties, properties?: ElementProperties) => {
+  if (!properties || !bpmnModeler.value) {
+    return;
+  }
+  const modeling: { updateProperties: (object: unknown, elementProperties: ElementProperties) => void } | undefined =
+    bpmnModeler.value.get('modeling');
+  if (!modeling) {
+    return;
+  }
+  /**
+   * element 是 Vue 的代理对象，
+   * bpmn.js 的 API 中某些操作会更新代理类的只读属性导致报错，
+   * 通过 toRaw() 得到原对象
+   * 没有选中元素，更新根节点属性
+   */
+  modeling.updateProperties(toRaw(element ?? bpmnRoot.value), getPropertiesToUpdate(properties, element));
+};
+
+// 弹出最新的值，更新 bpmnXml
+const emitXmlOfModeler = () => {
+  bpmnModeler.value
+    ?.saveXML({ format: true })
+    .then((saveXMLResult: SaveXMLResult) => {
+      emit('update:bpmn-xml', saveXMLResult.xml || '');
+    })
+    .catch((err: unknown) => {
+      console.error('保存 XML 时出错：', err);
+      emit('update:bpmn-xml', '');
+    });
+};
 
 // 插入 XML
 const updateXmlOfModeler = (newVal?: string, success?: () => void) => {
@@ -131,6 +165,34 @@ onMounted(() => {
     },
   });
   bpmnModeler.value = rawModeler;
+
+  // 任何会导致 xml 变化的状态更新都会触发，例如包括位置移动，但不包括选中的节点变化
+  rawModeler.on('commandStack.changed', (internalEvent: InternalEvent) => {
+    console.log('');
+    console.log('commandStack.changed >>> internalEvent =', internalEvent);
+    // 弹出新的 xml
+    emitXmlOfModeler();
+  });
+
+  // 添加根节点事件
+  rawModeler.on('root.added', (internalEvent: InternalEvent) => {
+    console.log('');
+    console.log('root.added >>> internalEvent =', internalEvent);
+    const bpmnRoot_ = internalEvent.element;
+    bpmnRoot.value = bpmnRoot_;
+  });
+
+  // 选择元素改变事件
+  rawModeler.on('selection.changed', (internalEvent: InternalEvent) => {
+    console.log('');
+    console.log('selection.changed >>> internalEvent =', internalEvent);
+  });
+
+  // 元素属性变化事件
+  rawModeler.on('element.changed', (internalEvent: InternalEvent) => {
+    console.log('');
+    console.log('element.changed >>> internalEvent =', internalEvent);
+  });
 
   // 检查浏览器的文件 API 是否可用
   if (!window.FileList || !window.FileReader) {
