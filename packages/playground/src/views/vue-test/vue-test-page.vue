@@ -5,6 +5,7 @@
         <a-radio-button value="1">Watch String</a-radio-button>
         <a-radio-button value="2">Watch Object</a-radio-button>
         <a-radio-button value="3">Computed String</a-radio-button>
+        <a-radio-button value="4">Computed Object</a-radio-button>
         <a-radio-button value="all">All</a-radio-button>
       </a-radio-group>
     </div>
@@ -25,7 +26,7 @@
         <div>
           <a-form>
             <a-form-item label="watchObjectValue name">
-              <a-input :value="watchObjectValue.name" @update:value="onUpdateWtchObjectName" />
+              <a-input :value="watchObjectValue.name" @update:value="onUpdateWatchObjectName" />
             </a-form-item>
           </a-form>
         </div>
@@ -34,7 +35,28 @@
         </div>
       </a-collapse-panel>
       <a-collapse-panel v-if="currentTest == '3' || currentTest == 'all'" key="3" header="computed-string">
-        <div>computed-string</div>
+        <div>
+          <a-form>
+            <a-form-item label="computedStringValue">
+              <a-input v-model:value="computedStringValue" />
+            </a-form-item>
+          </a-form>
+        </div>
+        <div>
+          <computed-string-component v-model:value="computedStringValue" />
+        </div>
+      </a-collapse-panel>
+      <a-collapse-panel v-if="currentTest == '4' || currentTest == 'all'" key="4" header="computed-object">
+        <div>
+          <a-form>
+            <a-form-item label="computedObjectValue name">
+              <a-input :value="computedObjectValue.name" @update:value="onUpdateComputedObjectName" />
+            </a-form-item>
+          </a-form>
+        </div>
+        <div>
+          <computed-object-component v-model:value="computedObjectValue" />
+        </div>
       </a-collapse-panel>
     </a-collapse>
   </div>
@@ -43,15 +65,22 @@
 <script lang="ts" setup>
 import StringComponent from './watch-test/string-component.vue';
 import ObjectComponent from './watch-test/object-component.vue';
+import ComputedStringComponent from './computed-test/computed-string-component.vue';
+import ComputedObjectComponent from './computed-test/computed-object-component.vue';
 
 const currentTest = ref('1');
 
 const watchStringValue = ref<string>('');
 const watchObjectValue = ref<Record<string, string>>({});
-
-const onUpdateWtchObjectName = (name: string) => {
+const onUpdateWatchObjectName = (name: string) => {
   watchObjectValue.value = { name };
 };
 
-const activeKey = ref(['1', '2', '3']);
+const computedStringValue = ref<string>('');
+const computedObjectValue = ref<Record<string, string>>({});
+const onUpdateComputedObjectName = (name: string) => {
+  computedObjectValue.value = { name };
+};
+
+const activeKey = ref(['1', '2', '3', '4']);
 </script>

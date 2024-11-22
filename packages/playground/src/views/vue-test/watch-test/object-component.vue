@@ -7,7 +7,7 @@
 </template>
 
 <script lang="ts" setup>
-import ObjectSubComponent from './object-sub-component.vue';
+import ObjectSubComponent from '../sub-component/object-sub-component.vue';
 
 const emit = defineEmits<{
   'update:value': [value: Record<string, string>];
@@ -30,6 +30,7 @@ watch(
   newValue => {
     console.log('');
     console.log('vue-test-component >>> watch value >>> newValue =', newValue);
+    // subvalue.value = { ...newValue }; 会造成死循环
     subvalue.value = newValue;
   },
   { immediate: true, deep: true },

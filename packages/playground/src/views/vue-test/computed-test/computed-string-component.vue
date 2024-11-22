@@ -21,25 +21,16 @@ const props = defineProps({
 });
 const { value } = toRefs(props);
 
-const subvalue = ref<string>('');
-
-watch(
-  value,
-  newValue => {
+const subvalue = computed({
+  get: () => {
     console.log('');
-    console.log('vue-test-component >>> watch value >>> newValue =', newValue);
-    subvalue.value = newValue;
+    console.log('computed-string-component >>> subvalue computed get >>> value.value =', value.value);
+    return value.value;
   },
-  { immediate: true, deep: true },
-);
-
-watch(
-  subvalue,
-  newSubvalue => {
+  set: newSubvalue => {
     console.log('');
-    console.log('vue-test-component >>> watch subvalue >>> newSubvalue =', newSubvalue);
+    console.log('computed-string-component >>> subvalue computed set >>> newSubvalue =', newSubvalue);
     emit('update:value', newSubvalue);
   },
-  { immediate: true, deep: true },
-);
+});
 </script>

@@ -21,21 +21,13 @@
     "test": "pnpm run test:types && pnpm run test:unit && pnpm run build && pnpm run build:dts && pnpm run test:e2e"
   },
   "dependencies": {
+    "@vueuse/core": "*",
     "bpmn-js": "*",
+    "cn-bpmn-modeler-vue": "file:",
     "diagram-js": "*",
-    "vue": "*",
-    "@vueuse/core": "*"
+    "vue": "*"
   },
   "devDependencies": {
-    "vite": "*",
-    "vite-plugin-compression": "*",
-    "vite-plugin-eslint": "*",
-    "vite-plugin-vue-devtools": "*",
-    "vue-tsc": "*",
-    "eslint": "*",
-    "eslint-plugin-prettier": "*",
-    "eslint-plugin-vue": "*",
-    "lint-staged": "*",
     "@commitlint/cli": "*",
     "@commitlint/config-conventional": "*",
     "@types/node": "*",
@@ -43,12 +35,21 @@
     "@vitejs/plugin-vue-jsx": "*",
     "@vue/eslint-config-prettier": "*",
     "@vue/eslint-config-typescript": "*",
-    "prettier": "*",
-    "typescript": "*",
+    "eslint": "*",
+    "eslint-plugin-prettier": "*",
+    "eslint-plugin-vue": "*",
     "less": "*",
+    "lint-staged": "*",
+    "prettier": "*",
     "rollup-plugin-visualizer": "*",
+    "typescript": "*",
     "unplugin-auto-import": "*",
-    "unplugin-vue-components": "*"
+    "unplugin-vue-components": "*",
+    "vite": "*",
+    "vite-plugin-compression": "*",
+    "vite-plugin-eslint": "*",
+    "vite-plugin-vue-devtools": "*",
+    "vue-tsc": "*"
   },
   "lint-staged": {
     "src/**/*.{js,ts,tsx,jsx,vue}": [
