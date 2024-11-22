@@ -24,6 +24,8 @@ declare module 'vue' {
     AMenu: typeof import('ant-design-vue/es')['Menu']
     AMenuItem: typeof import('ant-design-vue/es')['MenuItem']
     AModal: typeof import('ant-design-vue/es')['Modal']
+    ARadioButton: typeof import('ant-design-vue/es')['RadioButton']
+    ARadioGroup: typeof import('ant-design-vue/es')['RadioGroup']
     ARow: typeof import('ant-design-vue/es')['Row']
     ATree: typeof import('ant-design-vue/es')['Tree']
     BpmnModeler: typeof import('./components/flow/bpmn-modeler/bpmn-modeler.vue')['default']

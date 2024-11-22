@@ -1,0 +1,42 @@
+<template>
+  <div>
+    <a-form>
+      <a-form-item label="name">
+        <a-input :value="subvalue_.name" @update:value="onUpdateValue" />
+      </a-form-item>
+    </a-form>
+  </div>
+</template>
+
+<script lang="ts" setup>
+const emit = defineEmits<{
+  'update:subvalue': [subvalue: Record<string, string>];
+}>();
+
+const props = defineProps({
+  subvalue: {
+    type: Object as PropType<Record<string, string>>,
+    default: () => {
+      return {};
+    },
+  },
+});
+const { subvalue } = toRefs(props);
+
+const subvalue_ = computed({
+  get: () => {
+    console.log('');
+    console.log('vue-test-sub-component >>> computed get >>> subvalue.value =', subvalue.value);
+    return subvalue.value;
+  },
+  set: newSubvalue => {
+    console.log('');
+    console.log('vue-test-sub-component >>> computed set >>> newSubvalue =', newSubvalue);
+    emit('update:subvalue', newSubvalue);
+  },
+});
+
+const onUpdateValue = (name: string) => {
+  subvalue_.value = { name };
+};
+</script>
