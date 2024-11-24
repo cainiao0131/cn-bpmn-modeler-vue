@@ -24,13 +24,19 @@
 import BpmnModeler from 'bpmn-js/lib/Modeler';
 import { SaveXMLResult } from 'bpmn-js/lib/BaseViewer';
 import { CN } from '@/utils';
-import { flowableExtensions } from '../../../../cn-bpmn-modeler/src/cn-bpmn-modeler/moddle-extensions/flowable';
-import flowableControlsModule from '../../../../cn-bpmn-modeler/src/cn-bpmn-modeler/additional-modules/flowable';
-import { cnTranslator } from '../../../../cn-bpmn-modeler/src/cn-bpmn-modeler/util/locale';
-import { ElementProperties, InternalEvent } from '../../../../cn-bpmn-modeler/src/cn-bpmn-modeler/types';
+import { flowableExtensions } from 'cn-bpmn-modeler-vue/src/cn-bpmn-modeler/moddle-extensions/flowable';
+import flowableControlsModule from 'cn-bpmn-modeler-vue/src/cn-bpmn-modeler/additional-modules/flowable';
+import { cnTranslator } from 'cn-bpmn-modeler-vue/src/cn-bpmn-modeler/util/locale';
+import {
+  BpmnBusiness,
+  BpmnElement,
+  ProcessElement,
+  InternalEvent,
+} from 'cn-bpmn-modeler-vue/src/cn-bpmn-modeler/types';
 
 const emit = defineEmits<{
-  (eventName: 'update:bpmn-xml', message: string): void;
+  (eventName: 'update:bpmn-xml', bpmnXml: string): void;
+  (eventName: 'update:selected-element', selectedElement?: ProcessElement): void;
 }>();
 
 const props = defineProps({
@@ -38,20 +44,63 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  selectedElement: {
+    type: Object as PropType<ProcessElement>,
+    default: undefined,
+  },
 });
-const { bpmnXml } = toRefs(props);
+const { bpmnXml, selectedElement } = toRefs(props);
 
 // modeler 实例
 const bpmnModeler = ref<typeof BpmnModeler>();
 const dragFileRef = ref<HTMLElement>();
 // 根节点
-const bpmnRoot = ref<ElementProperties>();
+const bpmnRoot = ref<ProcessElement>();
+// 选中的元素，选中多个元素时，视为没有选中元素
+let selectedElementOfModeler: ProcessElement | undefined;
 
-const updateProperties = (element?: ElementProperties, properties?: ElementProperties) => {
+watch(
+  () => {
+    return selectedElement?.value;
+  },
+  newValue => {
+    console.log('');
+    console.log('watch selectedElement >>> newValue =', newValue);
+    console.log('watch selectedElement >>> selectedElementOfModeler =', selectedElementOfModeler);
+    console.log(
+      'watch selectedElement >>> isEqual(newValue, selectedElementOfModeler) =',
+      isEqual(newValue, selectedElementOfModeler),
+    );
+
+    if (selectedElementOfModeler && !isEqual(newValue, selectedElementOfModeler)) {
+      console.log('watch selectedElement >>> update start');
+      // 更新选中元素的名称
+      updateProperties(selectedElementOfModeler, newValue);
+      console.log('watch selectedElement >>> update end');
+    }
+  },
+  { deep: true },
+);
+
+const isEqual = (element?: ProcessElement, elementOfModeler?: ProcessElement) => {
+  if (!element || !elementOfModeler) {
+    return !element && !elementOfModeler;
+  }
+  const businessObject = elementOfModeler?.businessObject as BpmnBusiness | undefined;
+  if ((element.name ?? '') != (businessObject?.name ?? '')) {
+    return false;
+  }
+  if ((element.id ?? '') != (businessObject?.id ?? '')) {
+    return false;
+  }
+  return true;
+};
+
+const updateProperties = (element: ProcessElement, properties?: ProcessElement) => {
   if (!properties || !bpmnModeler.value) {
     return;
   }
-  const modeling: { updateProperties: (object: unknown, elementProperties: ElementProperties) => void } | undefined =
+  const modeling: { updateProperties: (object: unknown, elementProperties: ProcessElement) => void } | undefined =
     bpmnModeler.value.get('modeling');
   if (!modeling) {
     return;
@@ -62,7 +111,7 @@ const updateProperties = (element?: ElementProperties, properties?: ElementPrope
    * 通过 toRaw() 得到原对象
    * 没有选中元素，更新根节点属性
    */
-  modeling.updateProperties(toRaw(element ?? bpmnRoot.value), getPropertiesToUpdate(properties, element));
+  modeling.updateProperties(element, properties);
 };
 
 // 弹出最新的值，更新 bpmnXml
@@ -184,14 +233,34 @@ onMounted(() => {
 
   // 选择元素改变事件
   rawModeler.on('selection.changed', (internalEvent: InternalEvent) => {
-    console.log('');
-    console.log('selection.changed >>> internalEvent =', internalEvent);
+    // console.log('');
+    // console.log('selection.changed >>> internalEvent =', internalEvent);
+    const newSelection = internalEvent.newSelection;
+    if (newSelection && newSelection.length == 1) {
+      selectedElementOfModeler = newSelection[0] as BpmnElement;
+      const businessObject = selectedElementOfModeler.businessObject as BpmnBusiness | undefined;
+      emit('update:selected-element', { id: businessObject?.id, name: businessObject?.name });
+    } else {
+      selectedElementOfModeler = undefined;
+      emit('update:selected-element');
+    }
   });
 
   // 元素属性变化事件
   rawModeler.on('element.changed', (internalEvent: InternalEvent) => {
     console.log('');
     console.log('element.changed >>> internalEvent =', internalEvent);
+    console.log('element.changed >>> internalEvent.element?.businessObject =', internalEvent.element?.businessObject);
+    console.log('element.changed >>> selectedElement?.value =', selectedElement?.value);
+    console.log(
+      'element.changed >>> isEqual(selectedElement?.value, internalEvent.element) =',
+      isEqual(selectedElement?.value, internalEvent.element),
+    );
+
+    if (!isEqual(selectedElement?.value, internalEvent.element)) {
+      const businessObject = internalEvent.element?.businessObject as BpmnBusiness | undefined;
+      emit('update:selected-element', { id: businessObject?.id, name: businessObject?.name });
+    }
   });
 
   // 检查浏览器的文件 API 是否可用

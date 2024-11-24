@@ -56,7 +56,7 @@
 import { message } from 'ant-design-vue';
 import { copyText } from '@/utils/domUtils';
 import { CN } from '@/utils';
-import { ElementProperties } from 'cn-bpmn-modeler-vue';
+import { ProcessElement } from 'cn-bpmn-modeler-vue';
 import { Codemirror } from 'vue-codemirror';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { java } from '@codemirror/lang-java';
@@ -70,7 +70,7 @@ const selectedProcess = ref<{ bpmnXml: string }>({ bpmnXml: '' });
 const cardHeight = ref(152);
 
 const selectedIds = ref<Array<string>>([]);
-const elementContainer = ref<Record<string, ElementProperties>>({});
+const elementContainer = ref<Record<string, ProcessElement>>({});
 
 // 复制预览
 const copyPreview = () => {

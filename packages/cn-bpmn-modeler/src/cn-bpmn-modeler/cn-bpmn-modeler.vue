@@ -24,7 +24,7 @@
 import BpmnModeler from 'bpmn-js/lib/Modeler';
 import { Moddle, SaveXMLResult } from 'bpmn-js/lib/BaseViewer';
 import { getInitialXml, guid, isElementContainerEqual } from './util/util';
-import { DIRECT_KEYS, ElementProperties, EmitType, NAMESPACE } from './types';
+import { DIRECT_KEYS, ProcessElement, EmitType, NAMESPACE } from './types';
 import { useInit } from './init';
 import { useUpdateXmlOfModeler } from './update-xml-of-modeler';
 
@@ -36,7 +36,7 @@ const props = defineProps({
     default: () => [],
   },
   elementContainer: {
-    type: Object as PropType<Record<string, ElementProperties>>,
+    type: Object as PropType<Record<string, ProcessElement>>,
     default: () => {
       return {};
     },
@@ -124,7 +124,7 @@ const doTest1 = () => {
   console.log(JSON.stringify(toRaw(test.value)));
 };
 
-const set: Set<Record<string, ElementProperties>> = new Set();
+const set: Set<Record<string, ProcessElement>> = new Set();
 
 /**
  * 内部 internalElementContainer 是为了避免 v-model 的问题
@@ -135,11 +135,11 @@ const set: Set<Record<string, ElementProperties>> = new Set();
  * 由于弹出的新对象与 toRaw(internalElementContainer) 不是同一个对象
  * 因此内部对 internalElementContainer.value[key] = ... 的局部修改，在 emit 前不会被组件外部感知到
  */
-const internalElementContainer = ref<Record<string, ElementProperties>>({});
+const internalElementContainer = ref<Record<string, ProcessElement>>({});
 watch(
   internalElementContainer,
   newValue => {
-    const newElementContainer: Record<string, ElementProperties> = {};
+    const newElementContainer: Record<string, ProcessElement> = {};
     for (const [key, value] of Object.entries(toRaw(newValue))) {
       if (value != undefined) {
         newElementContainer[key] = value;
@@ -177,7 +177,7 @@ const canvasId = ref('_canvas_id');
 // modeler 实例
 const bpmnModeler = ref<typeof BpmnModeler>();
 // 根节点
-const bpmnRoot = ref<ElementProperties>();
+const bpmnRoot = ref<ProcessElement>();
 
 // 错误信息
 const errorMessage = ref('');
@@ -210,11 +210,11 @@ const emitXmlOfModeler = () => {
     });
 };
 
-const updateProperties = (element?: ElementProperties, properties?: ElementProperties) => {
+const updateProperties = (element?: ProcessElement, properties?: ProcessElement) => {
   if (!properties || !bpmnModeler.value) {
     return;
   }
-  const modeling: { updateProperties: (object: unknown, elementProperties: ElementProperties) => void } | undefined =
+  const modeling: { updateProperties: (object: unknown, elementProperties: ProcessElement) => void } | undefined =
     bpmnModeler.value.get('modeling');
   if (!modeling) {
     return;
@@ -240,8 +240,8 @@ const bpmnModdle = computed((): Moddle => {
  * @param properties 新的属性
  * @param element 待更新的元素
  */
-const getPropertiesToUpdate = (properties: ElementProperties, element?: ElementProperties): ElementProperties => {
-  const cleanProperties: ElementProperties = {};
+const getPropertiesToUpdate = (properties: ProcessElement, element?: ProcessElement): ProcessElement => {
+  const cleanProperties: ProcessElement = {};
   for (const key in properties) {
     if (DIRECT_KEYS.includes(key)) {
       cleanProperties[key] = properties[key] ?? '';

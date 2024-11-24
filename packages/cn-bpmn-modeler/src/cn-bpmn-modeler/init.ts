@@ -3,7 +3,7 @@ import { debounce, getAttribute, guid, toArray, toStringArray } from './util/uti
 import { onMounted, toRaw } from 'vue';
 import { flowableExtensions } from './moddle-extensions/flowable';
 import flowableControlsModule from './additional-modules/flowable';
-import { ARRAY_KEYS, BpmnBusiness, BpmnElement, EmitType, InternalEvent, NAMESPACE, ElementProperties } from './types';
+import { ARRAY_KEYS, BpmnBusiness, BpmnElement, EmitType, InternalEvent, NAMESPACE, ProcessElement } from './types';
 import { cnTranslator } from './util/locale';
 
 export function useInit(
@@ -17,8 +17,8 @@ export function useInit(
   bpmnXml: Ref<string>,
   locale: Ref<Record<string, string> | undefined> | undefined,
   bpmnModeler: Ref<typeof BpmnModeler | undefined>,
-  bpmnRoot: Ref<ElementProperties | undefined>,
-  internalElementContainer: Ref<Record<string, ElementProperties>>,
+  bpmnRoot: Ref<ProcessElement | undefined>,
+  internalElementContainer: Ref<Record<string, ProcessElement>>,
   errorMessage: Ref<string>,
   options: Ref<Record<string, unknown>>,
   additionalModules: Ref<Array<unknown>>,
@@ -149,18 +149,18 @@ export function useInit(
     });
   };
 
-  const buildElementContainerByRoot = (root?: ElementProperties): Record<string, ElementProperties> => {
+  const buildElementContainerByRoot = (root?: ProcessElement): Record<string, ProcessElement> => {
     if (!root) {
       return {};
     }
-    const elementContainer_: Record<string, ElementProperties> = {
+    const elementContainer_: Record<string, ProcessElement> = {
       [root.id as string]: getPropertiesOfElement(root),
     };
     setElements(elementContainer_, root.children);
     return elementContainer_;
   };
 
-  const setElements = (elementContainer_: Record<string, ElementProperties>, elements?: Array<ElementProperties>) => {
+  const setElements = (elementContainer_: Record<string, ProcessElement>, elements?: Array<ProcessElement>) => {
     if (!elements) {
       return;
     }
@@ -170,7 +170,7 @@ export function useInit(
     });
   };
 
-  const getPropertiesOfElement = (element: ElementProperties): ElementProperties => {
+  const getPropertiesOfElement = (element: ProcessElement): ProcessElement => {
     const businessObject: BpmnBusiness | undefined = element.businessObject as BpmnBusiness;
     if (!businessObject) {
       return {};

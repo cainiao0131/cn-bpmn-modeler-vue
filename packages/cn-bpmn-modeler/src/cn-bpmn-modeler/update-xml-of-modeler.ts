@@ -1,14 +1,14 @@
 import BpmnModeler from 'bpmn-js/lib/Modeler';
 import { SaveXMLResult } from 'bpmn-js/lib/BaseViewer';
-import { ElementProperties, EmitType } from './types';
+import { ProcessElement, EmitType } from './types';
 
 export function useUpdateXmlOfModeler(
   emit: EmitType,
-  updateProperties: (element?: ElementProperties, properties?: ElementProperties) => void,
+  updateProperties: (element?: ProcessElement, properties?: ProcessElement) => void,
   bpmnModeler: Ref<typeof BpmnModeler>,
   errorMessage: Ref<string>,
   processId: Ref<string>,
-  bpmnRoot: Ref<ElementProperties | undefined>,
+  bpmnRoot: Ref<ProcessElement | undefined>,
   processName: Ref<string>,
 ) {
   // 插入 XML

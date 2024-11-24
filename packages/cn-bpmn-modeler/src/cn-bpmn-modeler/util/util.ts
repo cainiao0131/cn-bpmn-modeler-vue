@@ -1,4 +1,4 @@
-import { ElementProperties, NAMESPACE } from '../types';
+import { ProcessElement, NAMESPACE } from '../types';
 
 export const guid = () => {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
@@ -9,8 +9,8 @@ export const guid = () => {
 };
 
 export const isElementPropertiesEqual = (
-  elementProperties1: ElementProperties,
-  elementProperties2: ElementProperties,
+  elementProperties1: ProcessElement,
+  elementProperties2: ProcessElement,
 ): boolean => {
   const keys1 = Object.keys(elementProperties1);
   const keys2 = Object.keys(elementProperties2);
@@ -25,8 +25,8 @@ export const isElementPropertiesEqual = (
   return true;
 };
 export const isElementContainerEqual = (
-  record1?: Record<string, ElementProperties>,
-  record2?: Record<string, ElementProperties>,
+  record1?: Record<string, ProcessElement>,
+  record2?: Record<string, ProcessElement>,
 ): boolean => {
   if (!record1 || !record2) {
     return !record1 && !record2;

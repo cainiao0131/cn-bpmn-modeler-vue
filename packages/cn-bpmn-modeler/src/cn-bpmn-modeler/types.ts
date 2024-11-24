@@ -13,28 +13,28 @@ export const NAMESPACE = 'flowable:';
 
 export type EmitType = {
   (eventName: 'update:bpmn-xml', message: string): void;
-  (eventName: 'update:element-container', elementContainer: Record<string, ElementProperties>): void;
+  (eventName: 'update:element-container', elementContainer: Record<string, ProcessElement>): void;
   (eventName: 'update:selected-ids', selectedIds: Array<string>): void;
   (eventName: 'root-added', message: InternalEvent): void;
   (eventName: 'api-ready', message: ProcessModelerApi): void;
   (eventName: 'modeler-ready', message: typeof BpmnModeler): void;
-  (eventName: 'update:selected-properties', message: ElementProperties): void;
+  (eventName: 'update:selected-properties', message: ProcessElement): void;
 };
 
 export type InternalEvent = {
   type?: string;
   trigger?: string;
-  element?: ElementProperties;
+  element?: ProcessElement;
   gfx?: unknown;
   originalEvent?: unknown;
   newSelection: Array<unknown>;
   oldSelection: Array<unknown>;
 };
 
-export type ElementProperties = {
+export type ProcessElement = {
   id?: string;
   type?: string;
-  children?: Array<ElementProperties>;
+  children?: Array<ProcessElement>;
   name?: string;
   assignee?: string; // 用户任务的委托人
   formKey?: string;
