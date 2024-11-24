@@ -24,9 +24,9 @@
 import BpmnModeler from 'bpmn-js/lib/Modeler';
 import { SaveXMLResult } from 'bpmn-js/lib/BaseViewer';
 import { CN } from '@/utils';
-import { flowableExtensions } from 'cn-bpmn-modeler-vue/src/cn-bpmn-modeler/moddle-extensions/flowable';
-import flowableControlsModule from 'cn-bpmn-modeler-vue/src/cn-bpmn-modeler/additional-modules/flowable';
-import { cnTranslator } from 'cn-bpmn-modeler-vue/src/cn-bpmn-modeler/util/locale';
+import { flowableExtensions } from '../../../../cn-bpmn-modeler/src/cn-bpmn-modeler/moddle-extensions/flowable';
+import flowableControlsModule from '../../../../cn-bpmn-modeler/src/cn-bpmn-modeler/additional-modules/flowable';
+import { cnTranslator } from '../../../../cn-bpmn-modeler/src/cn-bpmn-modeler/util/locale';
 import {
   BpmnBusiness,
   BpmnElement,
@@ -57,25 +57,26 @@ const dragFileRef = ref<HTMLElement>();
 // 根节点
 const bpmnRoot = ref<ProcessElement>();
 // 选中的元素，选中多个元素时，视为没有选中元素
-let selectedElementOfModeler: ProcessElement | undefined;
+const selectedElementOfModeler = ref<ProcessElement>();
 
 watch(
   () => {
     return selectedElement?.value;
   },
-  newValue => {
+  (newValue, old) => {
     console.log('');
+    console.log('watch selectedElement >>> old =', old);
     console.log('watch selectedElement >>> newValue =', newValue);
-    console.log('watch selectedElement >>> selectedElementOfModeler =', selectedElementOfModeler);
+    console.log('watch selectedElement >>> selectedElementOfModeler.value =', selectedElementOfModeler.value);
     console.log(
-      'watch selectedElement >>> isEqual(newValue, selectedElementOfModeler) =',
-      isEqual(newValue, selectedElementOfModeler),
+      'watch selectedElement >>> isEqual(newValue, selectedElementOfModeler.value) =',
+      isEqual(newValue, selectedElementOfModeler.value),
     );
 
-    if (selectedElementOfModeler && !isEqual(newValue, selectedElementOfModeler)) {
+    if (selectedElementOfModeler.value && !isEqual(newValue, selectedElementOfModeler.value)) {
       console.log('watch selectedElement >>> update start');
-      // 更新选中元素的名称
-      updateProperties(selectedElementOfModeler, newValue);
+      // 必须使用 toRaw()，否则 JS 组件的 API 会修改 Vue Ref 的只读属性导致报错
+      updateProperties(toRaw(selectedElementOfModeler.value), newValue);
       console.log('watch selectedElement >>> update end');
     }
   },
@@ -233,16 +234,17 @@ onMounted(() => {
 
   // 选择元素改变事件
   rawModeler.on('selection.changed', (internalEvent: InternalEvent) => {
-    // console.log('');
-    // console.log('selection.changed >>> internalEvent =', internalEvent);
+    console.log('');
+    console.log('selection.changed >>> internalEvent =', internalEvent);
     const newSelection = internalEvent.newSelection;
     if (newSelection && newSelection.length == 1) {
-      selectedElementOfModeler = newSelection[0] as BpmnElement;
-      const businessObject = selectedElementOfModeler.businessObject as BpmnBusiness | undefined;
+      const selectedElementOfModeler_ = newSelection[0] as BpmnElement;
+      selectedElementOfModeler.value = selectedElementOfModeler_;
+      const businessObject = selectedElementOfModeler_.businessObject as BpmnBusiness | undefined;
       emit('update:selected-element', { id: businessObject?.id, name: businessObject?.name });
     } else {
-      selectedElementOfModeler = undefined;
-      emit('update:selected-element');
+      selectedElementOfModeler.value = undefined;
+      emit('update:selected-element', undefined);
     }
   });
 
@@ -251,15 +253,34 @@ onMounted(() => {
     console.log('');
     console.log('element.changed >>> internalEvent =', internalEvent);
     console.log('element.changed >>> internalEvent.element?.businessObject =', internalEvent.element?.businessObject);
-    console.log('element.changed >>> selectedElement?.value =', selectedElement?.value);
+    const selectedElement_ = selectedElement!.value;
+    console.log('element.changed >>> selectedElement_ =', selectedElement_);
     console.log(
       'element.changed >>> isEqual(selectedElement?.value, internalEvent.element) =',
       isEqual(selectedElement?.value, internalEvent.element),
     );
+    console.log('element.changed >>> selectedElementOfModeler.value =', selectedElementOfModeler.value);
+    console.log('element.changed >>> internalEvent.element =', internalEvent.element);
+    console.log(
+      'element.changed >>> toRaw(selectedElementOfModeler.value) == internalEvent.element =',
+      toRaw(selectedElementOfModeler.value) == internalEvent.element,
+    );
 
-    if (!isEqual(selectedElement?.value, internalEvent.element)) {
+    /**
+     * toRaw(selectedElementOfModeler.value) == internalEvent.element
+     * 用于判断当前事件关联的对象与 toRaw(selectedElementOfModeler.value) 是不是同一个
+     * 之所以可能会不同，是因为某些用户操作，可能会导致多个元素实例都弹出 element.changed 事件
+     * 例如改变任务类型，除了对应的任务节点对象会弹出事件，前后的连线元素也会弹出 element.changed 事件
+     * 这里的判断能避免【连线元素】弹出的事件触发错误的 emit
+     */
+    if (
+      toRaw(selectedElementOfModeler.value) == internalEvent.element &&
+      !isEqual(selectedElement_, internalEvent.element)
+    ) {
       const businessObject = internalEvent.element?.businessObject as BpmnBusiness | undefined;
+      console.log('emit start');
       emit('update:selected-element', { id: businessObject?.id, name: businessObject?.name });
+      console.log('emit end');
     }
   });
 
