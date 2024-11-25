@@ -3,8 +3,8 @@
     <a-row>
       <a-col :span="24" :style="{ marginBottom: '10px' }">
         <a-radio-group v-model:value="currentTest" button-style="solid">
-          <a-radio-button value="flag">bpmn js component by flag</a-radio-button>
           <a-radio-button value="equal">bpmn js component by equal</a-radio-button>
+          <a-radio-button value="flag">bpmn js component by flag</a-radio-button>
         </a-radio-group>
       </a-col>
     </a-row>
@@ -55,7 +55,7 @@
 import BpmnJsComponentByEqual from './bpmn-js-component-by-equal.vue';
 import BpmnJsComponentByFlag from './bpmn-js-component-by-flag.vue';
 
-const currentTest = ref('flag');
+const currentTest = ref('equal');
 const processWidth = ref(14);
 
 const bpmnXmlFlag = ref('');

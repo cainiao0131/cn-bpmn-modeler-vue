@@ -56,8 +56,48 @@ const bpmnModeler = ref<typeof BpmnModeler>();
 const dragFileRef = ref<HTMLElement>();
 // 根节点
 const bpmnRoot = ref<ProcessElement>();
-// 选中的元素，选中多个元素时，视为没有选中元素
-const selectedElementOfModeler = ref<ProcessElement>();
+
+// 前一个选中的元素
+const previousSelection = ref<ProcessElement>();
+// 当前选中的元素
+const currentSelection = ref<ProcessElement>();
+/**
+ * 选中的元素，选中多个元素时，视为没有选中元素
+ * 正常情况下，selectedElementOfModeler == currentSelection
+ * 但 bpmn.js 在有些情况下会有意料之外的行为
+ * 例如用户修改任务类型的操作，会导致先弹出一个 selection.changed 事件将 currentSelection 置空
+ * 在任务类型改变完成之后，再弹出一个 selection.changed 事件重新设置 currentSelection
+ * 而任务类型属性的 element.changed 事件是在上述两个 selection.changed 事件之间弹出的
+ * 并且，对任务类型的改变，还会导致弹出两个无关元素的 selection.changed 事件
+ * 这就需要通过事件回调中判断当前事件元素是否等于当前选中元素，以此为依据判断是否应该 emit 选中元素的属性变化
+ * 而此时直接获取 currentSelection 的值是获取不到的，因为已经被第一个 selection.changed 事件置空了
+ * 所以需要通过 previousSelection 来获取当前选中的元素
+ *
+ * 说明 1：
+ * 注意，element.changed 事件对象中的元素对象
+ * 与 selection.changed 事件将 currentSelection 置空之前的对象（即 previousSelection 暂存的对象）是不同的对象
+ * 因此在 selection.changed 事件的回调中，不能直接比较对象，需要通过比较对象的 ID 来确认，同时重新设置新对象
+ * TODO 另外，由于 bpmn.js 会在同一个 event loop 中 emit 多个 update:selected-element 事件
+ * TODO 而这多个 emit update:selected-element 事件前，都会先通过 isEqual 判断，而 isEqual 中又依赖对 selectedElement 的读
+ * TODO 此时对 selectedElement 的读操作，是无法看见同一个 event loop 的前驱 update:selected-element 弹出的状态，从而造成误判
+ * TODO 详见：https://test-cprjkirb9nbd.feishu.cn/docx/YEnrdEbrtosu9Mx6I3DcLXoEnmc#share-PMmPd153ToP8aAxvwMVchjQ9nFd
+ */
+const selectedElementOfModeler = computed({
+  get: (): ProcessElement | undefined => {
+    console.log('');
+    console.log('computed get selectedElementOfModeler >>> currentSelection.value =', currentSelection.value);
+    console.log('computed get selectedElementOfModeler >>> previousSelection.value =', previousSelection.value);
+    return currentSelection.value ?? previousSelection.value;
+  },
+  set: newValue => {
+    console.log('');
+    console.log('computed set selectedElementOfModeler >>> newValue =', newValue);
+
+    previousSelection.value = currentSelection.value;
+    console.log('computed set selectedElementOfModeler >>> previousSelection.value =', previousSelection.value);
+    currentSelection.value = newValue;
+  },
+});
 
 watch(
   () => {
@@ -237,16 +277,43 @@ onMounted(() => {
     console.log('');
     console.log('selection.changed >>> internalEvent =', internalEvent);
     const newSelection = internalEvent.newSelection;
+    const selectedElement_ = selectedElement!.value;
     if (newSelection && newSelection.length == 1) {
-      const selectedElementOfModeler_ = newSelection[0] as BpmnElement;
-      selectedElementOfModeler.value = selectedElementOfModeler_;
-      const businessObject = selectedElementOfModeler_.businessObject as BpmnBusiness | undefined;
-      emit('update:selected-element', { id: businessObject?.id, name: businessObject?.name });
+      const selectedElementOfModelerOfEvent = newSelection[0] as BpmnElement;
+
+      console.log(
+        'selection.changed >>> toRaw(currentSelection.value) == selectedElementOfModelerOfEvent =',
+        toRaw(currentSelection.value) == selectedElementOfModelerOfEvent,
+      );
+      console.log('selection.changed >>> selectedElement_ =', selectedElement_);
+      console.log('selection.changed >>> selectedElementOfModelerOfEvent =', selectedElementOfModelerOfEvent);
+
+      /**
+       * toRaw(currentSelection.value) 与 selectedElementOfModeler_ 可能相等
+       * 之所以会相等，见：【说明 1】
+       */
+      if (toRaw(currentSelection.value) != selectedElementOfModelerOfEvent) {
+        selectedElementOfModeler.value = selectedElementOfModelerOfEvent;
+      }
+      emitIfChanged(selectedElement_, selectedElementOfModelerOfEvent);
     } else {
       selectedElementOfModeler.value = undefined;
-      emit('update:selected-element', undefined);
+      emitIfChanged(selectedElement_, undefined);
     }
   });
+
+  const emitIfChanged = (element?: ProcessElement, elementOfModeler?: ProcessElement) => {
+    if (!isEqual(element, elementOfModeler)) {
+      console.log('emit update:selected-element start');
+      if (elementOfModeler) {
+        const businessObject = elementOfModeler?.businessObject as BpmnBusiness | undefined;
+        emit('update:selected-element', { id: businessObject?.id, name: businessObject?.name });
+      } else {
+        emit('update:selected-element');
+      }
+      console.log('emit update:selected-element end');
+    }
+  };
 
   // 元素属性变化事件
   rawModeler.on('element.changed', (internalEvent: InternalEvent) => {
@@ -259,28 +326,28 @@ onMounted(() => {
       'element.changed >>> isEqual(selectedElement?.value, internalEvent.element) =',
       isEqual(selectedElement?.value, internalEvent.element),
     );
-    console.log('element.changed >>> selectedElementOfModeler.value =', selectedElementOfModeler.value);
+    console.log('element.changed >>> toRaw(selectedElementOfModeler.value) =', toRaw(selectedElementOfModeler.value));
     console.log('element.changed >>> internalEvent.element =', internalEvent.element);
     console.log(
-      'element.changed >>> toRaw(selectedElementOfModeler.value) == internalEvent.element =',
-      toRaw(selectedElementOfModeler.value) == internalEvent.element,
+      'element.changed >>> selectedElementOfModeler.value?.id == internalEvent.element?.id =',
+      selectedElementOfModeler.value?.id == internalEvent.element?.id,
     );
-
+    // selectedElementOfModeler.value = selectedElementOfModeler_;
     /**
-     * toRaw(selectedElementOfModeler.value) == internalEvent.element
-     * 用于判断当前事件关联的对象与 toRaw(selectedElementOfModeler.value) 是不是同一个
+     * selectedElementOfModeler.value?.id == internalEvent.element?.id
+     * 用于判断当前事件关联的对象与 selectedElementOfModeler 是不是同一个
      * 之所以可能会不同，是因为某些用户操作，可能会导致多个元素实例都弹出 element.changed 事件
      * 例如改变任务类型，除了对应的任务节点对象会弹出事件，前后的连线元素也会弹出 element.changed 事件
      * 这里的判断能避免【连线元素】弹出的事件触发错误的 emit
+     *
+     * 不能用 toRaw(selectedElementOfModeler.value) != internalEvent.element，详见【说明 1】
      */
-    if (
-      toRaw(selectedElementOfModeler.value) == internalEvent.element &&
-      !isEqual(selectedElement_, internalEvent.element)
-    ) {
-      const businessObject = internalEvent.element?.businessObject as BpmnBusiness | undefined;
-      console.log('emit start');
-      emit('update:selected-element', { id: businessObject?.id, name: businessObject?.name });
-      console.log('emit end');
+    if (selectedElementOfModeler.value?.id == internalEvent.element?.id) {
+      if (toRaw(selectedElementOfModeler.value) != internalEvent.element) {
+        // 重新设置 selectedElementOfModeler，详见【说明 1】
+        selectedElementOfModeler.value = internalEvent.element;
+      }
+      emitIfChanged(selectedElement_, internalEvent.element);
     }
   });
 
