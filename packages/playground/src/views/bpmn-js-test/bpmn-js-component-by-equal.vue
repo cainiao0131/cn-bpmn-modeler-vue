@@ -57,6 +57,27 @@ const dragFileRef = ref<HTMLElement>();
 // 根节点
 const bpmnRoot = ref<ProcessElement>();
 
+const internalSelectedElement = ref<ProcessElement>();
+watch(internalSelectedElement, newValue => {
+  /**
+   * 这里必须弹出新的对象，否则外部对 prop 属性的修改会导致内部的 internalData 被修改
+   * 这样对 selectedElement 的 watch 中的 isEqual 判断就永远都是相同的了
+   */
+  emit('update:selected-element', newValue ? { ...newValue } : undefined);
+});
+watch(
+  () => {
+    return selectedElement?.value;
+  },
+  newValue => {
+    if (selectedElementOfModeler.value && !isEqual(newValue, internalSelectedElement.value)) {
+      // 必须使用 toRaw()，否则 JS 组件的 API 会修改 Vue Ref 的只读属性导致报错
+      updateProperties(toRaw(selectedElementOfModeler.value), newValue);
+    }
+  },
+  { deep: true },
+);
+
 // 前一个选中的元素
 const previousSelection = ref<ProcessElement>();
 // 当前选中的元素
@@ -84,54 +105,22 @@ const currentSelection = ref<ProcessElement>();
  */
 const selectedElementOfModeler = computed({
   get: (): ProcessElement | undefined => {
-    console.log('');
-    console.log('computed get selectedElementOfModeler >>> currentSelection.value =', currentSelection.value);
-    console.log('computed get selectedElementOfModeler >>> previousSelection.value =', previousSelection.value);
     return currentSelection.value ?? previousSelection.value;
   },
   set: newValue => {
-    console.log('');
-    console.log('computed set selectedElementOfModeler >>> newValue =', newValue);
-
     previousSelection.value = currentSelection.value;
-    console.log('computed set selectedElementOfModeler >>> previousSelection.value =', previousSelection.value);
     currentSelection.value = newValue;
   },
 });
 
-watch(
-  () => {
-    return selectedElement?.value;
-  },
-  (newValue, old) => {
-    console.log('');
-    console.log('watch selectedElement >>> old =', old);
-    console.log('watch selectedElement >>> newValue =', newValue);
-    console.log('watch selectedElement >>> selectedElementOfModeler.value =', selectedElementOfModeler.value);
-    console.log(
-      'watch selectedElement >>> isEqual(newValue, selectedElementOfModeler.value) =',
-      isEqual(newValue, selectedElementOfModeler.value),
-    );
-
-    if (selectedElementOfModeler.value && !isEqual(newValue, selectedElementOfModeler.value)) {
-      console.log('watch selectedElement >>> update start');
-      // 必须使用 toRaw()，否则 JS 组件的 API 会修改 Vue Ref 的只读属性导致报错
-      updateProperties(toRaw(selectedElementOfModeler.value), newValue);
-      console.log('watch selectedElement >>> update end');
-    }
-  },
-  { deep: true },
-);
-
-const isEqual = (element?: ProcessElement, elementOfModeler?: ProcessElement) => {
-  if (!element || !elementOfModeler) {
-    return !element && !elementOfModeler;
+const isEqual = (element1?: ProcessElement, element2?: ProcessElement) => {
+  if (!element1 || !element2) {
+    return !element1 && !element2;
   }
-  const businessObject = elementOfModeler?.businessObject as BpmnBusiness | undefined;
-  if ((element.name ?? '') != (businessObject?.name ?? '')) {
+  if ((element1.name ?? '') != (element2.name ?? '')) {
     return false;
   }
-  if ((element.id ?? '') != (businessObject?.id ?? '')) {
+  if ((element1.id ?? '') != (element2.id ?? '')) {
     return false;
   }
   return true;
@@ -258,81 +247,36 @@ onMounted(() => {
 
   // 任何会导致 xml 变化的状态更新都会触发，例如包括位置移动，但不包括选中的节点变化
   rawModeler.on('commandStack.changed', (internalEvent: InternalEvent) => {
-    console.log('');
-    console.log('commandStack.changed >>> internalEvent =', internalEvent);
     // 弹出新的 xml
     emitXmlOfModeler();
   });
 
   // 添加根节点事件
   rawModeler.on('root.added', (internalEvent: InternalEvent) => {
-    console.log('');
-    console.log('root.added >>> internalEvent =', internalEvent);
     const bpmnRoot_ = internalEvent.element;
     bpmnRoot.value = bpmnRoot_;
   });
 
   // 选择元素改变事件
   rawModeler.on('selection.changed', (internalEvent: InternalEvent) => {
-    console.log('');
-    console.log('selection.changed >>> internalEvent =', internalEvent);
     const newSelection = internalEvent.newSelection;
-    const selectedElement_ = selectedElement!.value;
     if (newSelection && newSelection.length == 1) {
-      const selectedElementOfModelerOfEvent = newSelection[0] as BpmnElement;
-
-      console.log(
-        'selection.changed >>> toRaw(currentSelection.value) == selectedElementOfModelerOfEvent =',
-        toRaw(currentSelection.value) == selectedElementOfModelerOfEvent,
-      );
-      console.log('selection.changed >>> selectedElement_ =', selectedElement_);
-      console.log('selection.changed >>> selectedElementOfModelerOfEvent =', selectedElementOfModelerOfEvent);
-
-      /**
-       * toRaw(currentSelection.value) 与 selectedElementOfModeler_ 可能相等
-       * 之所以会相等，见：【说明 1】
-       */
-      if (toRaw(currentSelection.value) != selectedElementOfModelerOfEvent) {
-        selectedElementOfModeler.value = selectedElementOfModelerOfEvent;
-      }
-      emitIfChanged(selectedElement_, selectedElementOfModelerOfEvent);
+      const eventElement = newSelection[0] as BpmnElement;
+      selectedElementOfModeler.value = eventElement;
+      internalSelectedElement.value = createData(eventElement);
     } else {
       selectedElementOfModeler.value = undefined;
-      emitIfChanged(selectedElement_, undefined);
+      internalSelectedElement.value = undefined;
     }
   });
 
-  const emitIfChanged = (element?: ProcessElement, elementOfModeler?: ProcessElement) => {
-    if (!isEqual(element, elementOfModeler)) {
-      console.log('emit update:selected-element start');
-      if (elementOfModeler) {
-        const businessObject = elementOfModeler?.businessObject as BpmnBusiness | undefined;
-        emit('update:selected-element', { id: businessObject?.id, name: businessObject?.name });
-      } else {
-        emit('update:selected-element');
-      }
-      console.log('emit update:selected-element end');
-    }
+  const createData = (elementOfModeler: ProcessElement) => {
+    const businessObject = elementOfModeler?.businessObject as BpmnBusiness | undefined;
+    return { id: businessObject?.id, name: businessObject?.name };
   };
 
   // 元素属性变化事件
   rawModeler.on('element.changed', (internalEvent: InternalEvent) => {
-    console.log('');
-    console.log('element.changed >>> internalEvent =', internalEvent);
-    console.log('element.changed >>> internalEvent.element?.businessObject =', internalEvent.element?.businessObject);
-    const selectedElement_ = selectedElement!.value;
-    console.log('element.changed >>> selectedElement_ =', selectedElement_);
-    console.log(
-      'element.changed >>> isEqual(selectedElement?.value, internalEvent.element) =',
-      isEqual(selectedElement?.value, internalEvent.element),
-    );
-    console.log('element.changed >>> toRaw(selectedElementOfModeler.value) =', toRaw(selectedElementOfModeler.value));
-    console.log('element.changed >>> internalEvent.element =', internalEvent.element);
-    console.log(
-      'element.changed >>> selectedElementOfModeler.value?.id == internalEvent.element?.id =',
-      selectedElementOfModeler.value?.id == internalEvent.element?.id,
-    );
-    // selectedElementOfModeler.value = selectedElementOfModeler_;
     /**
      * selectedElementOfModeler.value?.id == internalEvent.element?.id
      * 用于判断当前事件关联的对象与 selectedElementOfModeler 是不是同一个
@@ -340,14 +284,16 @@ onMounted(() => {
      * 例如改变任务类型，除了对应的任务节点对象会弹出事件，前后的连线元素也会弹出 element.changed 事件
      * 这里的判断能避免【连线元素】弹出的事件触发错误的 emit
      *
-     * 不能用 toRaw(selectedElementOfModeler.value) != internalEvent.element，详见【说明 1】
+     * 不能用 toRaw(selectedElementOfModeler.value) != internalEvent.element 来做上述判断
+     * 因为即便是同一个元素，selectedElementOfModeler 与 internalEvent.element 也可能不同，详见【说明 1】
      */
-    if (selectedElementOfModeler.value?.id == internalEvent.element?.id) {
+    const eventElement = internalEvent.element;
+    if (eventElement && selectedElementOfModeler.value?.id == eventElement.id) {
       if (toRaw(selectedElementOfModeler.value) != internalEvent.element) {
-        // 重新设置 selectedElementOfModeler，详见【说明 1】
+        // ID 相同但对象不同时，重新设置对象，详见【说明 1】
         selectedElementOfModeler.value = internalEvent.element;
       }
-      emitIfChanged(selectedElement_, internalEvent.element);
+      internalSelectedElement.value = createData(eventElement);
     }
   });
 
