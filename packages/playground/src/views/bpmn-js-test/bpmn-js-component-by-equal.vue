@@ -57,6 +57,14 @@ const dragFileRef = ref<HTMLElement>();
 // 根节点
 const bpmnRoot = ref<ProcessElement>();
 
+/**
+ * 由于 bpmn.js 会在同一个 event loop 中 emit 多个 update:selected-element 事件
+ * 而这多个 emit update:selected-element 事件前，都会先通过 isEqual 判断，而 isEqual 中又依赖对 selectedElement 的读操作
+ * 此时对 selectedElement 的读操作，是无法看见同一个 event loop 的前驱 update:selected-element 弹出的状态的，从而造成误判
+ * 因此通过 internalSelectedElement 来解决这个问题，所有的读写都对 internalSelectedElement 进行操作
+ * 对 Vue 的 Ref 的写操作是立即可见的
+ * 详见：https://test-cprjkirb9nbd.feishu.cn/docx/YEnrdEbrtosu9Mx6I3DcLXoEnmc#share-PMmPd153ToP8aAxvwMVchjQ9nFd
+ */
 const internalSelectedElement = ref<ProcessElement>();
 watch(internalSelectedElement, newValue => {
   /**
@@ -90,7 +98,7 @@ const currentSelection = ref<ProcessElement>();
  * 在任务类型改变完成之后，再弹出一个 selection.changed 事件重新设置 currentSelection
  * 而任务类型属性的 element.changed 事件是在上述两个 selection.changed 事件之间弹出的
  * 并且，对任务类型的改变，还会导致弹出两个无关元素的 selection.changed 事件
- * 这就需要通过事件回调中判断当前事件元素是否等于当前选中元素，以此为依据判断是否应该 emit 选中元素的属性变化
+ * 这就需要通过事件回调中判断当前事件元素是否等于当前选中元素，以此为依据判断是否应该 emit 事件元素的属性变化
  * 而此时直接获取 currentSelection 的值是获取不到的，因为已经被第一个 selection.changed 事件置空了
  * 所以需要通过 previousSelection 来获取当前选中的元素
  *
@@ -98,10 +106,6 @@ const currentSelection = ref<ProcessElement>();
  * 注意，element.changed 事件对象中的元素对象
  * 与 selection.changed 事件将 currentSelection 置空之前的对象（即 previousSelection 暂存的对象）是不同的对象
  * 因此在 selection.changed 事件的回调中，不能直接比较对象，需要通过比较对象的 ID 来确认，同时重新设置新对象
- * TODO 另外，由于 bpmn.js 会在同一个 event loop 中 emit 多个 update:selected-element 事件
- * TODO 而这多个 emit update:selected-element 事件前，都会先通过 isEqual 判断，而 isEqual 中又依赖对 selectedElement 的读
- * TODO 此时对 selectedElement 的读操作，是无法看见同一个 event loop 的前驱 update:selected-element 弹出的状态，从而造成误判
- * TODO 详见：https://test-cprjkirb9nbd.feishu.cn/docx/YEnrdEbrtosu9Mx6I3DcLXoEnmc#share-PMmPd153ToP8aAxvwMVchjQ9nFd
  */
 const selectedElementOfModeler = computed({
   get: (): ProcessElement | undefined => {
