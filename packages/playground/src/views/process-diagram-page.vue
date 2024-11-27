@@ -8,12 +8,10 @@
         >
           <a-row type="flex">
             <a-col flex="auto">
-              <cn-bpmn-modeler
+              <cn-bpmn-modeler-imperative
                 :height="`calc(100vh - ${cardHeight + 30}px)`"
                 :locale="CN"
-                v-model:bpmn-xml="selectedProcess.bpmnXml"
-                v-model:selected-ids="selectedIds"
-                v-model:element-container="elementContainer"
+                v-model:bpmn-xml="bpmnXml"
               />
             </a-col>
           </a-row>
@@ -27,25 +25,7 @@
           <template #extra>
             <a-button type="primary" @click="copyPreview">复制</a-button>
           </template>
-          <a-collapse v-model:activeKey="activeKeys">
-            <a-collapse-panel key="selectedIds" header="selected ids">
-              <p>{{ selectedIds }}</p>
-            </a-collapse-panel>
-            <a-collapse-panel key="elementContainer" header="elementContainer">
-              <p>{{ elementContainer }}</p>
-            </a-collapse-panel>
-            <a-collapse-panel key="bpmnXml" header="BPMN XML">
-              <codemirror
-                v-if="selectedProcess.bpmnXml"
-                :model-value="selectedProcess.bpmnXml"
-                disabled
-                :autofocus="true"
-                :indent-with-tab="true"
-                :tab-size="2"
-                :extensions="extensions"
-              />
-            </a-collapse-panel>
-          </a-collapse>
+          未选中任何流程元素
         </a-card>
       </a-col>
     </a-row>
@@ -56,25 +36,14 @@
 import { message } from 'ant-design-vue';
 import { copyText } from '@/utils/domUtils';
 import { CN } from '@/utils';
-import { ProcessElement } from 'cn-bpmn-modeler-vue';
-import { Codemirror } from 'vue-codemirror';
-import { oneDark } from '@codemirror/theme-one-dark';
-import { java } from '@codemirror/lang-java';
 
-const extensions = [java(), oneDark];
-
-const activeKeys = ref(['selectedIds', 'elementContainer', 'bpmnXml']);
-
-// 选中的流程
-const selectedProcess = ref<{ bpmnXml: string }>({ bpmnXml: '' });
 const cardHeight = ref(152);
-
-const selectedIds = ref<Array<string>>([]);
-const elementContainer = ref<Record<string, ProcessElement>>({});
+// 选中的流程
+const bpmnXml = ref<string>('');
 
 // 复制预览
 const copyPreview = () => {
-  copyText(selectedProcess.value.bpmnXml ?? '').then(() => {
+  copyText(bpmnXml.value).then(() => {
     message.success('已复制到剪切板');
   });
 };

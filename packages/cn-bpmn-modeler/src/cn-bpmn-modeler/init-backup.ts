@@ -108,7 +108,7 @@ export function useInit(
       rawModeler.on('root.added', (internalEvent: InternalEvent) => {
         const bpmnRoot_ = internalEvent.element;
         bpmnRoot.value = bpmnRoot_;
-        emit('root-added', internalEvent);
+        // emit('root-added', internalEvent);
         nextTick(() => {
           // 需要在 nextTick 中计算，否则 root 对象的 children 子对象无法被获取到
           internalElementContainer.value = buildElementContainerByRoot(bpmnRoot_);
@@ -124,7 +124,7 @@ export function useInit(
             return el_?.id || '';
           });
         }
-        emit('update:selected-ids', selectedIds_);
+        // emit('update:selected-ids', selectedIds_);
       });
       // 元素属性变化事件
       // TODO 待验证：外部通过 API 更新 modeler 时，会触发这个事件吗？

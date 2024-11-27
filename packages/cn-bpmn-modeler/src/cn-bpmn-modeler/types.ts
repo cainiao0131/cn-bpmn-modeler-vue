@@ -11,14 +11,22 @@ export const SPECIAL_KEYS = [
 export const ARRAY_KEYS = ['candidateUsers', 'candidateGroups'];
 export const NAMESPACE = 'flowable:';
 
+export type ElementChangeEvent = {
+  /**
+   * 元素对应的 bpmn.js 内部对象，应该被作为只读属性使用，不应该修改该对象内部属性
+   * 由于元素的 ID 也能修改，因此无法用 ID 作为主键
+   * 统一用 modelerElement 作为索引元素的主键
+   */
+  modelerElement: ProcessElement;
+  element: ProcessElement;
+};
+
 export type EmitType = {
   (eventName: 'update:bpmn-xml', message: string): void;
-  (eventName: 'update:element-container', elementContainer: Record<string, ProcessElement>): void;
-  (eventName: 'update:selected-ids', selectedIds: Array<string>): void;
-  (eventName: 'root-added', message: InternalEvent): void;
-  (eventName: 'api-ready', message: ProcessModelerApi): void;
+  (eventName: 'root-added', root: ElementChangeEvent): void;
+  (eventName: 'element-changed', elementChangeEvent: ElementChangeEvent): void;
+  (eventName: 'selection-changed', selectedModelerElements: Array<ProcessElement>): void;
   (eventName: 'modeler-ready', message: typeof BpmnModeler): void;
-  (eventName: 'update:selected-properties', message: ProcessElement): void;
 };
 
 export type InternalEvent = {
