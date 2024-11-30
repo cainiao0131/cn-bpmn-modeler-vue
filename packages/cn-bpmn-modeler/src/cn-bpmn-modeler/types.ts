@@ -12,20 +12,15 @@ export const ARRAY_KEYS = ['candidateUsers', 'candidateGroups'];
 export const NAMESPACE = 'flowable:';
 
 export type ElementChangeEvent = {
-  /**
-   * 元素对应的 bpmn.js 内部对象，应该被作为只读属性使用，不应该修改该对象内部属性
-   * 由于元素的 ID 也能修改，因此无法用 ID 作为主键
-   * 统一用 modelerElement 作为索引元素的主键
-   */
-  modelerElement: ProcessElement;
-  element: ProcessElement;
+  newProcessElement: ProcessElement;
+  oldProcessElement?: ProcessElement;
 };
 
 export type EmitType = {
   (eventName: 'update:bpmn-xml', message: string): void;
-  (eventName: 'root-added', root: ElementChangeEvent): void;
+  (eventName: 'root-added', root: ProcessElement): void;
   (eventName: 'element-changed', elementChangeEvent: ElementChangeEvent): void;
-  (eventName: 'selection-changed', selectedModelerElements: Array<ProcessElement>): void;
+  (eventName: 'update:selected-element-ids', selectedElementIds: Array<string>): void;
   (eventName: 'modeler-ready', message: typeof BpmnModeler): void;
 };
 
@@ -40,7 +35,10 @@ export type InternalEvent = {
 };
 
 export type ProcessElement = {
-  id?: string;
+  /**
+   * id 作为元素的 Entity ID，在一个流程定义范围内不可重复，不可缺失
+   */
+  id: string;
   type?: string;
   children?: Array<ProcessElement>;
   name?: string;

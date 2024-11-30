@@ -9,9 +9,12 @@
           <a-row type="flex">
             <a-col flex="auto">
               <cn-bpmn-modeler-imperative
+                ref="cnBpmnModelerImperativeRef"
                 :height="`calc(100vh - ${cardHeight + 30}px)`"
                 :locale="CN"
                 v-model:bpmn-xml="bpmnXml"
+                v-model:selected-element-ids="selectedElementIds"
+                @element-changed="onElementChanged"
               />
             </a-col>
           </a-row>
@@ -25,7 +28,32 @@
           <template #extra>
             <a-button type="primary" @click="copyPreview">复制</a-button>
           </template>
-          未选中任何流程元素
+          <div v-if="selectedElementIds.length > 0">
+            <a-card
+              v-for="(selectedElementId, index) in selectedElementIds"
+              :key="index"
+              :style="{ marginBottom: '10px' }"
+            >
+              <a-form :label-col="{ span: 5 }">
+                <a-form-item label="元素类型">
+                  {{ getElementPropertValue(selectedElementId, 'type') }}
+                </a-form-item>
+                <a-form-item label="元素 ID">
+                  <a-input
+                    :value="getElementPropertValue(selectedElementId, 'id')"
+                    @update:value="updateElementProperty(selectedElementId, 'id', $event)"
+                  />
+                </a-form-item>
+                <a-form-item label="元素名称">
+                  <a-input
+                    :value="getElementPropertValue(selectedElementId, 'name')"
+                    @update:value="updateElementProperty(selectedElementId, 'name', $event)"
+                  />
+                </a-form-item>
+              </a-form>
+            </a-card>
+          </div>
+          <div v-else>未选中任何流程元素</div>
         </a-card>
       </a-col>
     </a-row>
@@ -36,10 +64,36 @@
 import { message } from 'ant-design-vue';
 import { copyText } from '@/utils/domUtils';
 import { CN } from '@/utils';
+import { ProcessElement, ElementChangeEvent } from '../../../cn-bpmn-modeler/src/cn-bpmn-modeler/types';
 
 const cardHeight = ref(152);
-// 选中的流程
 const bpmnXml = ref<string>('');
+const selectedElementIds = ref<Array<string>>([]);
+
+const elementConainer = ref<Record<string, ProcessElement>>({});
+const onElementChanged = (elementChangeEvent: ElementChangeEvent) => {
+  const newProcessElement: ProcessElement = elementChangeEvent.newProcessElement;
+  const newId = newProcessElement.id;
+  elementConainer.value[newId] = newProcessElement;
+  const oldProcessElement: ProcessElement | undefined = elementChangeEvent.oldProcessElement;
+  if (oldProcessElement) {
+    const oldId = oldProcessElement.id;
+    if (oldId != newId) {
+      // ID 发生了改变，需要垃圾回收
+      delete elementConainer.value[oldId];
+    }
+  }
+};
+
+const getElementPropertValue = (selectedElementId: string, key: string): string | undefined => {
+  const element = elementConainer.value[selectedElementId];
+  const elementValue = element ? element[key] : undefined;
+  return typeof elementValue === 'string' ? elementValue : undefined;
+};
+const cnBpmnModelerImperativeRef = ref();
+const updateElementProperty = (selectedElementId: string, key: string, value?: string) => {
+  cnBpmnModelerImperativeRef.value?.updateElement(selectedElementId, key, value);
+};
 
 // 复制预览
 const copyPreview = () => {

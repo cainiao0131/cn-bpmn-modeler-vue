@@ -36,6 +36,10 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  selectedElementIds: {
+    type: Array as PropType<Array<string>>,
+    default: [],
+  },
   additionalModules: {
     type: Array,
     default: () => {
@@ -65,7 +69,7 @@ const props = defineProps({
     default: '100%',
   },
 });
-const { bpmnXml, additionalModules, locale, keyboardBindTo, bpmnModeleroptions } = toRefs(props);
+const { bpmnXml, additionalModules, locale, keyboardBindTo, bpmnModeleroptions, selectedElementIds } = toRefs(props);
 
 /**
  * 重新绘制图表会导致位移
@@ -83,8 +87,18 @@ const errorMessage = ref('');
 const dragFileRef = ref<HTMLElement>();
 // BpmnModeler 实例
 const bpmnModeler = ref<typeof BpmnModeler>();
-// 根节点
-const bpmnRoot = ref<ProcessElement>();
+/**
+ * processElementRepository 的 Kye 是元素的 bpmn.js 内部对象，Value 是组件定义的流程元素对象
+ * 之所以需要 processElementRepository 是因为 bpmn.js 的 element.changed 事件回调参数没有旧值
+ * 而元素的 ID 又是可变的，因此不能用 ID 从容器中获取旧值
+ * 例如 ID 从 a 改为 b，此时在 element.changed 回调中只有一个 ID 为 b 的元素
+ * 此时在回调中无法知道这个元素是容器中的 ID 为 a 的那个元素的新值
+ * 因此只能维护一个从 bpmn.js 内部对象到组件定义的流程元素对象之间的映射
+ * bpmn.js 内部对象相同则视为是同一个元素
+ */
+const processElementRepository = ref<Map<ProcessElement, ProcessElement>>(new Map());
+// ID 到 bpmn.js 元素对象的映射
+const modelerElementContainer = ref<Record<string, ProcessElement>>({});
 
 onMounted(() => {
   init();
@@ -111,6 +125,41 @@ const init = () => {
   });
 };
 
+const onElementChanged = (newModelerElement: ProcessElement) => {
+  const newProcessElement = createElement(newModelerElement);
+  const oldProcessElement = processElementRepository.value.get(newModelerElement);
+  emit('element-changed', { newProcessElement, oldProcessElement });
+
+  const newId = newModelerElement.id;
+  modelerElementContainer.value[newId] = newModelerElement;
+
+  if (oldProcessElement) {
+    const oldId = oldProcessElement.id;
+    if (oldId != newId) {
+      // ID 发生了改变：
+      // 1）需要垃圾回收
+      delete modelerElementContainer.value[oldId];
+      // 2）更新 selectedElementIds
+      const selectedElementIds_ = selectedElementIds.value;
+      let isIncludes = false;
+      const newIds: Array<string> = [];
+      selectedElementIds_.forEach(selectedElementId => {
+        if (selectedElementId == oldId) {
+          newIds.push(newId);
+          isIncludes = true;
+        } else {
+          newIds.push(selectedElementId);
+        }
+      });
+      if (isIncludes) {
+        emit('update:selected-element-ids', newIds);
+      }
+    }
+  }
+
+  processElementRepository.value.set(newModelerElement, newProcessElement);
+};
+
 const bindEventListeners = (bpmnModeler_: typeof BpmnModeler) => {
   // 打印所有事件 console.log(bpmnModeler.value.get('eventBus'));
   /**
@@ -120,52 +169,20 @@ const bindEventListeners = (bpmnModeler_: typeof BpmnModeler) => {
   bpmnModeler_.on('commandStack.changed', debounce(emitXmlOfModeler, 500));
   // 添加根节点事件
   bpmnModeler_.on('root.added', (internalEvent: InternalEvent) => {
-    const bpmnRoot_ = internalEvent.element!;
-    bpmnRoot.value = bpmnRoot_;
     // 需要在 nextTick 中计算，否则 root 对象的 children 子对象无法被获取到
     nextTick(() => {
-      emitAllElements(bpmnRoot_);
+      emitAllElements(internalEvent.element!);
     });
   });
   // 选择元素改变事件
   bpmnModeler_.on('selection.changed', (internalEvent: InternalEvent) => {
     const newSelection = internalEvent.newSelection as Array<ProcessElement> | undefined;
-    emit('selection-changed', newSelection ?? []);
+    emit('update:selected-element-ids', newSelection ? newSelection.map(element_ => element_.id) : []);
   });
   // 元素属性变化事件
   bpmnModeler_.on('element.changed', (internalEvent: InternalEvent) => {
-    emit('element-changed', createEvent(internalEvent.element!));
+    onElementChanged(internalEvent.element!);
   });
-};
-
-// 弹出最新的值，更新 bpmnXml
-const emitXmlOfModeler = () => {
-  bpmnModeler.value
-    ?.saveXML({ format: true })
-    .then((saveXMLResult: SaveXMLResult) => {
-      emit('update:bpmn-xml', saveXMLResult.xml || '');
-    })
-    .catch((err: unknown) => {
-      console.error('保存 XML 时出错：', err);
-      emit('update:bpmn-xml', '');
-    });
-};
-
-/**
- * 更新 Xml，只有 Xml 有变化时才插入。
- * 因为插入会导致图像闪烁以及失去焦点，尽量避免不必要的插入。
- */
-const resetXmlOfModelerIfDifferent = (newValue: string, success?: () => void) => {
-  bpmnModeler.value
-    ?.saveXML({ format: true })
-    .then((saveXMLResult: SaveXMLResult) => {
-      if (newValue != saveXMLResult.xml) {
-        resetXmlOfModeler(newValue, success);
-      }
-    })
-    .catch(() => {
-      resetXmlOfModeler(newValue, success);
-    });
 };
 
 // 插入 XML
@@ -265,41 +282,26 @@ const initForImportXmlFileByDrag = () => {
   }
 };
 
-// 将文件转换为字符串后导入 BPMN modeler
-const importXmlFile = (file: File) => {
-  const reader = new FileReader();
-  reader.onload = (pe: ProgressEvent) => {
-    const target = pe.target;
-    if (target) {
-      emit('update:bpmn-xml', String((target as FileReader).result));
-    }
-  };
-  reader.readAsText(file);
-};
-
-const createEvent = (elementOfModeler: ProcessElement) => {
-  return { modelerElement: elementOfModeler, element: createElement(elementOfModeler) };
-};
-
 const emitElements = (elements?: Array<ProcessElement>) => {
   if (!elements) {
     return;
   }
   elements.forEach(el_ => {
-    emit('element-changed', createEvent(el_));
+    onElementChanged(el_);
     emitElements(el_.children);
   });
 };
 
 const emitAllElements = (root: ProcessElement) => {
-  emit('root-added', createEvent(root));
+  emit('root-added', createElement(root));
   emitElements(root.children);
 };
 
 const createElement = (element: ProcessElement): ProcessElement => {
   const businessObject: BpmnBusiness | undefined = element.businessObject as BpmnBusiness;
+  const id = element.id;
   if (!businessObject) {
-    return {};
+    return { id };
   }
 
   const attrs_: Record<string, string> | undefined = businessObject.$attrs as Record<string, string>;
@@ -341,7 +343,7 @@ const createElement = (element: ProcessElement): ProcessElement => {
 
   return {
     ...properties_,
-    id: businessObject.id,
+    id,
     name: businessObject.name ?? '',
     async: businessObject.async || undefined,
     formKey: businessObject.formKey ? String(businessObject.formKey) : undefined,
@@ -365,6 +367,81 @@ const createElement = (element: ProcessElement): ProcessElement => {
     completeTaskEvent,
   };
 };
+
+// 将文件转换为字符串后导入 BPMN modeler
+const importXmlFile = (file: File) => {
+  const reader = new FileReader();
+  reader.onload = (pe: ProgressEvent) => {
+    const target = pe.target;
+    if (target) {
+      emit('update:bpmn-xml', String((target as FileReader).result));
+    }
+  };
+  reader.readAsText(file);
+};
+
+// 弹出最新的值，更新 bpmnXml
+const emitXmlOfModeler = () => {
+  bpmnModeler.value
+    ?.saveXML({ format: true })
+    .then((saveXMLResult: SaveXMLResult) => {
+      emit('update:bpmn-xml', saveXMLResult.xml || '');
+    })
+    .catch((err: unknown) => {
+      console.error('保存 XML 时出错：', err);
+      emit('update:bpmn-xml', '');
+    });
+};
+
+/**
+ * 更新 Xml，只有 Xml 有变化时才插入。
+ * 因为插入会导致图像闪烁以及失去焦点，尽量避免不必要的插入。
+ */
+const resetXmlOfModelerIfDifferent = (newValue: string, success?: () => void) => {
+  bpmnModeler.value
+    ?.saveXML({ format: true })
+    .then((saveXMLResult: SaveXMLResult) => {
+      if (newValue != saveXMLResult.xml) {
+        resetXmlOfModeler(newValue, success);
+      }
+    })
+    .catch(() => {
+      resetXmlOfModeler(newValue, success);
+    });
+};
+
+const updateElement = (selectedElementId: string, key: string, value?: string) => {
+  if (!bpmnModeler.value) {
+    console.error('updateElement() >>> bpmnModeler =', bpmnModeler.value);
+    return;
+  }
+  const modeling:
+    | { updateProperties: (object: unknown, elementProperties: Record<string, string | undefined>) => void }
+    | undefined = bpmnModeler.value.get('modeling');
+  if (!modeling) {
+    console.error('updateElement() >>> modeling =', modeling);
+    return;
+  }
+  const modelerElement = modelerElementContainer.value[selectedElementId];
+
+  if (!modelerElement) {
+    console.error('updateElement() >>> can not find modelerElement by selectedElementId ', selectedElementId);
+    return;
+  }
+
+  // TODO 如果 key 是 id，需要校验 id 是否重复
+  /**
+   * modelerElement 是 Vue 的代理对象，
+   * bpmn.js 的 API 中某些操作会更新代理类的只读属性导致报错，
+   * 通过 toRaw() 得到原对象
+   * 没有选中元素，更新根节点属性
+   */
+  modeling.updateProperties(toRaw(modelerElement), { [key]: value });
+};
+
+defineExpose({
+  updateElement,
+});
 </script>
 
 <style lang="less">
