@@ -28,7 +28,7 @@
           <template #extra>
             <a-button type="primary" @click="copyPreview">复制</a-button>
           </template>
-          <div v-if="selectedElementIds.length > 0">
+          <div v-if="showData && selectedElementIds.length > 0">
             <a-card
               v-for="(selectedElementId, index) in selectedElementIds"
               :key="index"
@@ -69,6 +69,7 @@ import { ProcessElement, ElementChangeEvent } from '../../../cn-bpmn-modeler/src
 const cardHeight = ref(152);
 const bpmnXml = ref<string>('');
 const selectedElementIds = ref<Array<string>>([]);
+const showData = ref(true);
 
 const elementConainer = ref<Record<string, ProcessElement>>({});
 const onElementChanged = (elementChangeEvent: ElementChangeEvent) => {
@@ -92,7 +93,18 @@ const getElementPropertValue = (selectedElementId: string, key: string): string 
 };
 const cnBpmnModelerImperativeRef = ref();
 const updateElementProperty = (selectedElementId: string, key: string, value?: string) => {
-  cnBpmnModelerImperativeRef.value?.updateElement(selectedElementId, key, value);
+  if (!cnBpmnModelerImperativeRef.value?.updateElement(selectedElementId, key, value)) {
+    /**
+     * 如果没有更新成功，则恢复一下原来的值
+     * 之所以需要手动恢复，时因为获取 <a-input> 的 :value 的值的方法 getElementPropertValue() 在用户手动输入了新值后不会被触发
+     * 因此 <a-input> 会展示错误的没有更新成功的新值
+     * 通过 v-if 促使重新渲染计算一下
+     */
+    showData.value = false;
+    nextTick(() => {
+      showData.value = true;
+    });
+  }
 };
 
 // 复制预览

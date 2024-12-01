@@ -410,26 +410,42 @@ const resetXmlOfModelerIfDifferent = (newValue: string, success?: () => void) =>
     });
 };
 
-const updateElement = (selectedElementId: string, key: string, value?: string) => {
+const updateElement = (selectedElementId: string, key: string, value?: string): boolean => {
   if (!bpmnModeler.value) {
     console.error('updateElement() >>> bpmnModeler =', bpmnModeler.value);
-    return;
+    return false;
   }
   const modeling:
     | { updateProperties: (object: unknown, elementProperties: Record<string, string | undefined>) => void }
     | undefined = bpmnModeler.value.get('modeling');
   if (!modeling) {
     console.error('updateElement() >>> modeling =', modeling);
-    return;
+    return false;
   }
   const modelerElement = modelerElementContainer.value[selectedElementId];
 
   if (!modelerElement) {
     console.error('updateElement() >>> can not find modelerElement by selectedElementId ', selectedElementId);
-    return;
+    return false;
   }
 
-  // TODO 如果 key 是 id，需要校验 id 是否重复
+  if (key == 'id') {
+    // 要更新的属性是元素 ID 时，做一些特殊处理，因为 ID 属性代表的是实体标识，比较特殊
+    if (selectedElementId == value) {
+      // 新的 ID 与旧的 ID 相同，什么都不用做
+      return true;
+    }
+    if (!value) {
+      console.error('updateElement() >>> id can not be empty');
+      return false;
+    }
+    // 需要修改 ID，校验新 ID 是否已经被别的元素使用
+    if (modelerElementContainer.value[value]) {
+      console.error(`updateElement() >>> id cannot be duplicated, the id "${value}" already exists`);
+      return false;
+    }
+  }
+
   /**
    * modelerElement 是 Vue 的代理对象，
    * bpmn.js 的 API 中某些操作会更新代理类的只读属性导致报错，
@@ -437,6 +453,7 @@ const updateElement = (selectedElementId: string, key: string, value?: string) =
    * 没有选中元素，更新根节点属性
    */
   modeling.updateProperties(toRaw(modelerElement), { [key]: value });
+  return true;
 };
 
 defineExpose({
